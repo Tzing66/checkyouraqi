@@ -3,6 +3,8 @@
 bronze/openmeteo/forecasts/dt=YYYY-MM-DD/hour=HH/forecast.json.gz          (hourly, live only)
 bronze/openmeteo/actuals/dt=<start>/actuals_<start>_<end>.json.gz          (date range)
 bronze/openmeteo/previous_runs/dt=<start>/previous_runs_<start>_<end>.json.gz
+bronze/openmeteo/air_quality_forecasts/dt=YYYY-MM-DD/hour=HH/air_quality_forecast.json.gz
+bronze/openmeteo/air_quality/dt=<start>/air_quality_<start>_<end>.json.gz          (CAMS history)
 
 Ranges overlap across runs (the daily actuals job re-fetches the last week because ERA5 lags
 ~5 days), so silver dedupes on (point, hour) keeping the most recent `fetched_at`.
@@ -45,6 +47,20 @@ def _envelope(
     }
 
 
+def _check_live(logical_hour: datetime, now: datetime) -> None:
+    if abs(now - logical_hour) > MAX_FORECAST_LAG:
+        raise StaleForecastRunError(
+            f"refusing to label a forecast fetched at {now:%Y-%m-%dT%H:%MZ} as issued for "
+            f"{logical_hour:%Y-%m-%dT%H:%MZ}; use previous_runs for history"
+        )
+
+
+def _forecast_key(kind: str, logical_hour: datetime) -> str:
+    return (
+        f"bronze/openmeteo/{kind}s/dt={logical_hour:%Y-%m-%d}/hour={logical_hour:%H}/{kind}.json.gz"
+    )
+
+
 def extract_forecast(
     client: OpenMeteoClient,
     writer: Writer,
@@ -54,18 +70,27 @@ def extract_forecast(
     now: datetime | None = None,
 ) -> str:
     now = now or datetime.now(UTC)
-    if abs(now - logical_hour) > MAX_FORECAST_LAG:
-        raise StaleForecastRunError(
-            f"refusing to label a forecast fetched at {now:%Y-%m-%dT%H:%MZ} as issued for "
-            f"{logical_hour:%Y-%m-%dT%H:%MZ}; use previous_runs for history"
-        )
+    _check_live(logical_hour, now)
     fetched = client.forecast(points)
-    key = (
-        f"bronze/openmeteo/forecasts/dt={logical_hour:%Y-%m-%d}"
-        f"/hour={logical_hour:%H}/forecast.json.gz"
-    )
     return writer.put_json(
-        key,
+        _forecast_key("forecast", logical_hour),
+        _envelope(points, fetched, forecast_issued_at=_iso(now), logical_hour=_iso(logical_hour)),
+    )
+
+
+def extract_air_quality_forecast(
+    client: OpenMeteoClient,
+    writer: Writer,
+    points: list[WeatherPoint],
+    *,
+    logical_hour: datetime,
+    now: datetime | None = None,
+) -> str:
+    now = now or datetime.now(UTC)
+    _check_live(logical_hour, now)
+    fetched = client.air_quality_forecast(points)
+    return writer.put_json(
+        _forecast_key("air_quality_forecast", logical_hour),
         _envelope(points, fetched, forecast_issued_at=_iso(now), logical_hour=_iso(logical_hour)),
     )
 
@@ -91,5 +116,15 @@ def extract_previous_runs(
     fetched = client.previous_runs(points, start, end)
     return writer.put_json(
         range_key("previous_runs", start, end),
+        _envelope(points, fetched, start_date=start.isoformat(), end_date=end.isoformat()),
+    )
+
+
+def extract_air_quality(
+    client: OpenMeteoClient, writer: Writer, points: list[WeatherPoint], start: date, end: date
+) -> str:
+    fetched = client.air_quality(points, start, end)
+    return writer.put_json(
+        range_key("air_quality", start, end),
         _envelope(points, fetched, start_date=start.isoformat(), end_date=end.isoformat()),
     )

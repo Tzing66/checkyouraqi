@@ -1,4 +1,4 @@
-"""Hourly: Open-Meteo forecast for every zone point, stored with its issue time -> bronze."""
+"""Hourly: Open-Meteo weather + CAMS air-quality forecasts per zone, with issue time -> bronze."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -26,7 +26,7 @@ def run_time():
 )
 def ingest_weather():
     @task(execution_timeout=timedelta(minutes=10))
-    def forecast() -> str:
+    def forecast() -> list[str]:
         from ingestion import jobs
 
         return jobs.weather_forecast_hourly(run_time())

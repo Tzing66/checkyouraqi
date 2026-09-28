@@ -15,7 +15,12 @@ from ingestion.openaq.client import OpenAQClient
 from ingestion.openaq.discover import load_city
 from ingestion.openaq.extract import extract_hourly, load_stations
 from ingestion.openmeteo.client import OpenMeteoClient
-from ingestion.openmeteo.extract import extract_actuals, extract_forecast
+from ingestion.openmeteo.extract import (
+    extract_actuals,
+    extract_air_quality,
+    extract_air_quality_forecast,
+    extract_forecast,
+)
 from ingestion.openmeteo.points import zone_points
 from ingestion.settings import Settings
 from ingestion.writers import S3Writer
@@ -44,18 +49,28 @@ def openaq_hourly(logical_time: datetime) -> dict[str, int]:
     return result
 
 
-def weather_forecast_hourly(logical_time: datetime) -> str:
+def weather_forecast_hourly(logical_time: datetime) -> list[str]:
+    """Weather forecast + CAMS air-quality forecast, both stored with their issue time."""
     s = Settings()
+    writer, points, hour = _writer(s), zone_points(), _hour(logical_time)
     with OpenMeteoClient() as client:
-        return extract_forecast(client, _writer(s), zone_points(), logical_hour=_hour(logical_time))
+        return [
+            extract_forecast(client, writer, points, logical_hour=hour),
+            extract_air_quality_forecast(client, writer, points, logical_hour=hour),
+        ]
 
 
-def weather_actuals_daily(run_day: date) -> str:
+def weather_actuals_daily(run_day: date) -> list[str]:
+    """Observed weather (ERA5) + CAMS history for the last week (both lag a few days)."""
     s = Settings()
+    writer, points = _writer(s), zone_points()
     start = run_day - timedelta(days=ACTUALS_LOOKBACK_DAYS)
     end = run_day - timedelta(days=1)
     with OpenMeteoClient() as client:
-        return extract_actuals(client, _writer(s), zone_points(), start, end)
+        return [
+            extract_actuals(client, writer, points, start, end),
+            extract_air_quality(client, writer, points, start, end),
+        ]
 
 
 def fires_daily(run_day: date) -> dict[str, dict[str, int]]:

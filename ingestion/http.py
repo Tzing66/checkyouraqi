@@ -72,7 +72,18 @@ class HttpApi:
         self._http.close()
 
     def get_json(self, url: str, params: dict[str, Any] | None = None) -> Any:
-        return self.get(url, params).json()
+        # A 200 with a truncated or empty body happens occasionally (seen on Open-Meteo's
+        # archive); treat it like a 5xx and retry.
+        for attempt in range(self._max_retries):
+            resp = self.get(url, params)
+            try:
+                return resp.json()
+            except ValueError:
+                log.warning("%s %s: 200 with non-JSON body, retrying", self.name, self._safe(url))
+                self._sleep(backoff(attempt))
+        raise ApiServerError(
+            f"{self.name} {self._safe(url)}: non-JSON body after {self._max_retries} tries"
+        )
 
     def get(self, url: str, params: dict[str, Any] | None = None) -> httpx.Response:
         label = self._safe(url)

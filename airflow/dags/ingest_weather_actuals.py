@@ -1,4 +1,4 @@
-"""Daily: observed weather (ERA5 archive) for the last 7 days -> bronze (ERA5 lags ~5 days)."""
+"""Daily: observed weather (ERA5) + CAMS history for the last 7 days -> bronze (both lag)."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -23,7 +23,7 @@ def run_time():
 )
 def ingest_weather_actuals():
     @task(execution_timeout=timedelta(minutes=10))
-    def actuals() -> str:
+    def actuals() -> list[str]:
         from ingestion import jobs
 
         return jobs.weather_actuals_daily(run_time().date())

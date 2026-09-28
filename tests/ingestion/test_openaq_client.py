@@ -174,3 +174,16 @@ def test_pauses_when_server_reports_low_remaining(load_fixture, clock):
     c, _ = make_client(lambda r: ok(load_fixture("openaq/location_235.json"), remaining="1"), clock)
     c.location(235)
     assert 60 in clock.sleeps
+
+
+def test_non_json_200_is_retried(load_fixture, clock):
+    responses = iter([httpx.Response(200, text=""), ok(load_fixture("openaq/location_235.json"))])
+    c, calls = make_client(lambda r: next(responses), clock)
+    assert c.location(235).items[0].id == 235
+    assert len(calls) == 2
+
+
+def test_persistent_non_json_200_raises_server_error(clock):
+    c, _ = make_client(lambda r: httpx.Response(200, text="<html>oops"), clock, max_retries=2)
+    with pytest.raises(OpenAQServerError, match="non-JSON"):
+        c.location(235)

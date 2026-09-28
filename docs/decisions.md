@@ -2,6 +2,18 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-28 — History is 19 months, not 2 years; CAMS added (owner decision)
+- **OpenAQ PM2.5 for Delhi NCR stations only exists from ~mid-Feb 2025**, in both the API and the public S3 archive (`openaq-data-archive`, which has 2017, 2018, 2025 and 2026 for Anand Vihar). OpenAQ appears to have lost the CPCB feed between ~2018 and early 2025. Newer stations start later (JNU 2026-02, Wave City 2026-07). So training history is **~19 months with one full stubble/Diwali season (Oct–Nov 2025)**. The Oct 2026 season will come in through live ingestion.
+- **Owner chose: use the 19 months, plus CAMS** (Open-Meteo air-quality API, free, history from ~2022-09). Alternatives rejected: OpenAQ only (no regional background signal), or finding older CPCB data elsewhere (manual, licensing unclear, different IDs).
+- **CAMS leakage finding:** the air-quality API has no previous-run values (all null), and its history is the model's best estimate per hour, not an archived forecast. So **CAMS history is only used lagged** (value at prediction time − 12h, allowing for CAMS publication delay), never for the target hour. **The CAMS forecast baseline** (plan §7) is scored only on forecasts we collect live with `forecast_issued_at`, starting 2026-09-28. For past periods, "CAMS reanalysis" can be shown as a clearly labelled upper bound, not a fair baseline. Older CAMS history can't add training rows (no observed target before 2025-02).
+- **Backfill** (`scripts/backfill.py`, resumable, finished files skipped, the last 7 days always refreshed):
+  - OpenAQ PM2.5 from 2025-02, one file per station-month, skipping months before a station's first reading.
+  - Weather actuals, previous runs and CAMS from 2025-01, one file per month.
+  - FIRMS from 2025-01, per day.
+  - The ~1-month head start gives lag features from the first target day. Used the OpenAQ API rather than the S3 archive: same coverage, and ~1,400 calls is ~25 min.
+- **`ingest_openaq` is paused during the OpenAQ backfill** so the two don't share the 60/min key limit and risk repeated 429s. Unpause afterwards.
+- **Transport:** a 200 with a non-JSON body (seen once from the Open-Meteo archive) is now retried like a 5xx.
+
 ## 2026-09-28 — Ingestion DAGs and bronze format
 - **Four DAGs** (Airflow 3.1, LocalExecutor): `ingest_openaq` (hourly :05), `ingest_weather` (hourly :10, forecast), `ingest_weather_actuals` (daily 02:00 UTC, last 7 days), `ingest_fires` (daily 03:30 UTC, last 2 days). All `catchup=False`, `max_active_runs=1`, 2 retries. DAG files only call `ingestion/jobs.py`, which has no Airflow imports, so the jobs are testable and runnable without Airflow.
 - **OpenAQ hourly = trailing-6h PM2.5 hourly aggregates + `/latest` per station** (~140 calls/hour, well under 60/min). The overlapping windows catch late readings, and staging dedupes on (sensor_id, hour). `/latest` is kept every hour even when nothing is new, because it feeds "last reading" and the freshness badges. One failing station is recorded in the file's `errors` and doesn't fail the run; a bad key or all stations failing does.

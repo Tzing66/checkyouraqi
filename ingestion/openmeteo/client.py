@@ -26,6 +26,7 @@ from ingestion.rate_limit import RateLimiter
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 PREVIOUS_RUNS_URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
+AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
 VARIABLES = (
     "temperature_2m",
@@ -40,6 +41,12 @@ VARIABLES = (
 PREVIOUS_RUN_VARIABLES = tuple(v for v in VARIABLES if v != "boundary_layer_height")
 PREVIOUS_RUN_DAYS = (1, 2, 3)
 MAX_POINTS_PER_REQUEST = 50
+
+# CAMS (via Open-Meteo air quality), history from ~2022-09. Verified 2026-09-28: there are
+# NO previous-run values, and past hours are the model's best estimate of that hour. So the
+# history is only leak-free as a lagged feature; the CAMS *forecast* baseline must come from
+# forecasts we collect live with their issue time.
+AIR_QUALITY_VARIABLES = ("pm2_5", "pm10")
 
 COMMON_PARAMS = {"timezone": "GMT", "timeformat": "iso8601", "wind_speed_unit": "ms"}
 
@@ -82,6 +89,28 @@ class OpenMeteoClient:
     ) -> Fetched[HourlySeries]:
         """Observed (reanalysis) weather. ERA5 lags ~5 days; later days come back as nulls."""
         return self._fetch(ARCHIVE_URL, points, {"hourly": VARIABLES, **_dates(start, end)})
+
+    def air_quality_forecast(
+        self, points: Sequence[WeatherPoint], *, forecast_days: int = 4, past_days: int = 1
+    ) -> Fetched[HourlySeries]:
+        """Current CAMS PM2.5/PM10 forecast (the plan's CAMS baseline)."""
+        return self._fetch(
+            AIR_QUALITY_URL,
+            points,
+            {
+                "hourly": AIR_QUALITY_VARIABLES,
+                "forecast_days": forecast_days,
+                "past_days": past_days,
+            },
+        )
+
+    def air_quality(
+        self, points: Sequence[WeatherPoint], start: date, end: date
+    ) -> Fetched[HourlySeries]:
+        """CAMS PM2.5/PM10 for past dates (best estimate per hour, not archived forecasts)."""
+        return self._fetch(
+            AIR_QUALITY_URL, points, {"hourly": AIR_QUALITY_VARIABLES, **_dates(start, end)}
+        )
 
     def previous_runs(
         self,

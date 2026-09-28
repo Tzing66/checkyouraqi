@@ -12,6 +12,8 @@ from ingestion.openmeteo.client import OpenMeteoClient
 from ingestion.openmeteo.extract import (
     StaleForecastRunError,
     extract_actuals,
+    extract_air_quality,
+    extract_air_quality_forecast,
     extract_forecast,
     extract_previous_runs,
 )
@@ -182,3 +184,29 @@ def test_extract_actuals_and_previous_runs_keys(load_fixture, clock, tmp_path):
     assert extract_previous_runs(c, w, [EAST], date(2024, 11, 1), date(2024, 11, 1)).endswith(
         "previous_runs/dt=2024-11-01/previous_runs_2024-11-01_2024-11-01.json.gz"
     )
+
+
+def test_air_quality_forecast_and_history(load_fixture, clock, tmp_path):
+    c, calls = make_client(respond(load_fixture("openmeteo/air_quality_forecast.json")), clock)
+    uri = extract_air_quality_forecast(
+        c, LocalWriter(tmp_path), [EAST, GURGAON], logical_hour=HOUR, now=NOW
+    )
+    assert str(calls[0].url).startswith(om.AIR_QUALITY_URL)
+    assert calls[0].url.params["hourly"] == "pm2_5,pm10"
+    assert uri.endswith("air_quality_forecasts/dt=2026-09-28/hour=14/air_quality_forecast.json.gz")
+    assert json.loads(gzip.decompress(Path(uri).read_bytes()))["forecast_issued_at"]
+
+    c, calls = make_client(respond(load_fixture("openmeteo/air_quality_history.json")), clock)
+    day = date(2024, 11, 1)
+    uri = extract_air_quality(c, LocalWriter(tmp_path), [EAST], day, day)
+    assert calls[0].url.params["start_date"] == "2024-11-01"
+    assert uri.endswith("air_quality/dt=2024-11-01/air_quality_2024-11-01_2024-11-01.json.gz")
+
+
+def test_air_quality_forecast_refuses_backfilled_hours(clock, tmp_path):
+    c, calls = make_client(respond({}), clock)
+    with pytest.raises(StaleForecastRunError):
+        extract_air_quality_forecast(
+            c, LocalWriter(tmp_path), [EAST], logical_hour=HOUR - timedelta(hours=5), now=NOW
+        )
+    assert calls == []
