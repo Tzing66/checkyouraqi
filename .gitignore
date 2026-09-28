@@ -30,3 +30,4 @@ data/
 docs/checkyouraqi-plan.md
 infra/terraform/backend.hcl
 .terraform.lock.hcl.bak
+config/zones.draft.yaml
