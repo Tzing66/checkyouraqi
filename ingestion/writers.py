@@ -16,6 +16,10 @@ class Writer(Protocol):
         """Write payload as JSON at key (overwriting, so reruns are idempotent). Returns a URI."""
         ...
 
+    def put_text(self, key: str, text: str, content_type: str = "text/csv") -> str:
+        """Write text as UTF-8 at key (overwriting). Returns a URI."""
+        ...
+
 
 class LocalWriter:
     def __init__(self, base_dir: Path) -> None:
@@ -25,6 +29,12 @@ class LocalWriter:
         path = self.base_dir / key
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(_dumps(payload))
+        return str(path)
+
+    def put_text(self, key: str, text: str, content_type: str = "text/csv") -> str:
+        path = self.base_dir / key
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
         return str(path)
 
 
@@ -43,10 +53,11 @@ class S3Writer:
         return cls(bucket, session.client("s3"))
 
     def put_json(self, key: str, payload: Any) -> str:
-        self._s3.put_object(
-            Bucket=self.bucket,
-            Key=key,
-            Body=_dumps(payload),
-            ContentType="application/json",
-        )
+        return self._put(key, _dumps(payload), "application/json")
+
+    def put_text(self, key: str, text: str, content_type: str = "text/csv") -> str:
+        return self._put(key, text.encode("utf-8"), content_type)
+
+    def _put(self, key: str, body: bytes, content_type: str) -> str:
+        self._s3.put_object(Bucket=self.bucket, Key=key, Body=body, ContentType=content_type)
         return f"s3://{self.bucket}/{key}"

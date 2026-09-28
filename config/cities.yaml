@@ -5,3 +5,5 @@ cities:
     timezone: Asia/Kolkata
     # Covers Delhi, Gurugram, Faridabad, Noida/Greater Noida and Ghaziabad.
     bbox: [76.84, 28.35, 77.60, 28.90]
+    # Upwind fire region for NASA FIRMS: Punjab, Haryana and western UP (stubble burning).
+    fire_bbox: [73.8, 27.5, 78.5, 32.6]

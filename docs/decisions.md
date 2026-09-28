@@ -2,6 +2,14 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-28 — NASA FIRMS fires
+- **Region:** `fire_bbox` [73.8, 27.5, 78.5, 32.6] in `cities.yaml`, covering Punjab, Haryana and western UP. On 2024-11-01 (stubble peak) there were ~960 VIIRS detections per satellite, vs ~80 on 2026-09-27.
+- **Sensors:** VIIRS on Suomi-NPP and NOAA-20. Both have an SP archive back past the 2-year backfill plus NRT. NOAA-21 (no SP archive) and MODIS (coarser) are left out so the feature is consistent across the history.
+- **SP vs NRT is chosen per date from FIRMS's live availability table** (on 2026-09-28: SP ≤ 2026-06-30, NRT ≥ 2026-07-01). The client prefers SP. A day can later get both files, so **silver must prefer `_SP` over `_NRT` per day and sensor.**
+- **The two satellites see mostly the same fires** (961 vs 955 on 2024-11-01), so **never add their counts together**. In Phase 2, either use one sensor (SNPP, with NOAA-20 as fallback when SNPP is missing) or dedupe detections spatially. Decide when building `int_fires_upwind_daily`.
+- **One request per day** (`day_range=1`; the API max is 5) → `bronze/firms/dt=YYYY-MM-DD/<source>.csv`, overwritten on rerun. Empty days still get a header-only file, so "no fires" differs from "not fetched".
+- **Key safety:** the key sits in the URL path. It's redacted from all error messages, httpx request logging is off, and the client rejects any 200 response that isn't CSV (FIRMS returns some errors as plain text).
+
 ## 2026-09-28 — Open-Meteo weather
 - **Leak-free weather for the backfill:** Open-Meteo's previous-runs API returns "the forecast for hour H as issued N days earlier". Verified back to 2024-09, which covers the 2-year backfill, for temperature, RH, wind speed/direction, precipitation and surface pressure. Training features for the 24/48/72h horizons use `<var>_previous_day1/2/3`. Live prediction uses the current forecast, stored with the time we fetched it.
 - **Boundary layer height has no previous-run data** (checked GFS, ECMWF and best_match). It's used only as the value observed at prediction time, never as a forecast of the target hour. Archive (ERA5) values in the backfill and forecast-API recent hours live are a small source mismatch, acceptable for v1.

@@ -36,3 +36,13 @@ def test_s3_writer_puts_utf8_json():
 def test_s3_writer_requires_bucket():
     with pytest.raises(ValueError, match="DATA_BUCKET"):
         S3Writer("", FakeS3())
+
+
+def test_put_text_local_and_s3(tmp_path):
+    uri = LocalWriter(tmp_path).put_text("bronze/firms/dt=2024-11-01/x.csv", "a,b\n1,2\n")
+    assert (tmp_path / "bronze/firms/dt=2024-11-01/x.csv").read_text() == "a,b\n1,2\n"
+    assert uri.endswith("x.csv")
+    s3 = FakeS3()
+    S3Writer("b", s3).put_text("k.csv", "a,b\n")
+    assert s3.calls[0]["ContentType"] == "text/csv"
+    assert s3.calls[0]["Body"] == b"a,b\n"
