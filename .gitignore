@@ -28,3 +28,5 @@ data/
 
 # planning doc stays local
 docs/checkyouraqi-plan.md
+infra/terraform/backend.hcl
+.terraform.lock.hcl.bak

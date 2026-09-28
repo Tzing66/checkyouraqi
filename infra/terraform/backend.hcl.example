@@ -1,0 +1,2 @@
+# Copy to backend.hcl (git-ignored) and fill in the bucket from `terraform output` in bootstrap/.
+bucket = "checkyouraqi-tfstate-<account-id>"
