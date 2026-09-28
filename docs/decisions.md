@@ -2,6 +2,14 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-28 — Ingestion DAGs and bronze format
+- **Four DAGs** (Airflow 3.1, LocalExecutor): `ingest_openaq` (hourly :05), `ingest_weather` (hourly :10, forecast), `ingest_weather_actuals` (daily 02:00 UTC, last 7 days), `ingest_fires` (daily 03:30 UTC, last 2 days). All `catchup=False`, `max_active_runs=1`, 2 retries. DAG files only call `ingestion/jobs.py`, which has no Airflow imports, so the jobs are testable and runnable without Airflow.
+- **OpenAQ hourly = trailing-6h PM2.5 hourly aggregates + `/latest` per station** (~140 calls/hour, well under 60/min). The overlapping windows catch late readings, and staging dedupes on (sensor_id, hour). `/latest` is kept every hour even when nothing is new, because it feeds "last reading" and the freshness badges. One failing station is recorded in the file's `errors` and doesn't fail the run; a bad key or all stations failing does.
+- **Bronze JSON is gzipped** (`.json.gz`, deterministic `mtime=0`). Athena reads gz natively and bills compressed bytes, which matters under the 100 MB per-query cap (the 2-year PM2.5 history is ~700 MB as plain JSON). FIRMS CSVs and station metadata stay uncompressed (small).
+- **Airflow 3 gotcha:** manually triggered runs have **no `logical_date`**. The DAGs fall back to `dag_run.run_after`.
+- **Custom image** = official `apache/airflow:3.1.0-python3.12` + `pydantic-settings` (installed with `apache-airflow==$AIRFLOW_VERSION` pinned so Airflow's deps can't move). Code and config are mounted read-only. Keys come from the repo `.env`, and `~/.aws` is mounted read-only with `AWS_PROFILE=checkyouraqi-dev` (the EC2 instance role replaces this in Phase 5).
+- **Memory under load** (all four DAGs triggered together, 3 tasks concurrent): **peak 981 MiB total** — scheduler 531/700 MiB (it runs the tasks), api-server 316/450, dag-processor 72/250, postgres 63/200. This fits the t3.small budget (~1.6 GB for containers), so the Phase 0 memory spike is closed. The scheduler cap is the one to watch: if it OOMs, lower `PARALLELISM` before resizing.
+
 ## 2026-09-28 — NASA FIRMS fires
 - **Region:** `fire_bbox` [73.8, 27.5, 78.5, 32.6] in `cities.yaml`, covering Punjab, Haryana and western UP. On 2024-11-01 (stubble peak) there were ~960 VIIRS detections per satellite, vs ~80 on 2026-09-27.
 - **Sensors:** VIIRS on Suomi-NPP and NOAA-20. Both have an SP archive back past the 2-year backfill plus NRT. NOAA-21 (no SP archive) and MODIS (coarser) are left out so the feature is consistent across the history.
@@ -57,7 +65,8 @@ Decisions not covered by the plan, newest first. Format: date — decision — w
 - **Setup:** Airflow 3.1.0 (`apache/airflow:3.1.0-python3.12`), LocalExecutor, Postgres 16, no Celery/Redis, **no triggerer**, parallelism 4, one API worker. Per-service `mem_limit` caps add up to 1.6 GB: scheduler 700m, api-server 450m, dag-processor 250m, postgres 200m.
 - **Why caps instead of shrinking Docker Desktop to 2 GB:** Docker Desktop's memory setting is global and would affect other projects. The caps model the t3.small's budget (2 GB minus about 0.4 GB for Amazon Linux and Docker).
 - **Result, idle (6 samples over 2 min):** scheduler ~215 MiB, api-server ~210 MiB, dag-processor ~84–107 MiB, postgres ~73 MiB, **~605 MiB total**. About 1 GB is left for task processes inside the caps, plus a 2–4 GB swap file on EC2.
-- **Still open:** measure under task load. The test DAG wasn't written in Phase 0 (a tooling block). The first real ingestion DAGs in Phase 1 will serve as the load test. If the scheduler cap OOMs, lower parallelism to 2 before resizing the instance.
+- **Closed (see "Ingestion DAGs"):** measured under task load, peak 981 MiB.
+- ~~Still open: measure under task load.~~ The test DAG wasn't written in Phase 0 (a tooling block). The first real ingestion DAGs in Phase 1 will serve as the load test. If the scheduler cap OOMs, lower parallelism to 2 before resizing the instance.
 
 ## 2026-09-28 — Station set for v1
 - **Model only reference-grade stations.** Originally this meant `isMonitor = true` (54 pass). _Corrected in "Station discovery" below: 10 government stations lack the flag._ Low-cost AirGradient sensors are left out of v1.

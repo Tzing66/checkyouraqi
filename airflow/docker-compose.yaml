@@ -1,13 +1,20 @@
 # Airflow for CheckYourAQI: LocalExecutor + Postgres, no Celery/Redis (plan §4).
+# Image = official Airflow + pydantic-settings (see Dockerfile); our code is mounted read-only.
 # Sized for a t3.small (2 GB RAM + swap): no triggerer, low parallelism, per-service memory caps.
 #
-#   cd airflow && docker compose up -d        # UI at http://localhost:8080
+#   cd airflow && docker compose up -d --build   # UI at http://localhost:8080
 #
 # Local-dev only: SimpleAuthManager with everyone as admin. Not for exposure to the internet.
 
 x-airflow-common: &airflow-common
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.1.0-python3.12}
+  build: .
+  image: checkyouraqi-airflow:local
+  # API keys, DATA_BUCKET and AWS_PROFILE (checkyouraqi-dev) come from the repo's .env.
+  env_file: ../.env
   environment: &airflow-common-env
+    PYTHONPATH: /opt/airflow/project
+    AWS_CONFIG_FILE: /opt/airflow/aws/config
+    AWS_SHARED_CREDENTIALS_FILE: /opt/airflow/aws/credentials
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
@@ -22,6 +29,10 @@ x-airflow-common: &airflow-common
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
+    - ../ingestion:/opt/airflow/project/ingestion:ro
+    - ../config:/opt/airflow/project/config:ro
+    # Local only. On EC2 (Phase 5) the instance role replaces this mount.
+    - ~/.aws:/opt/airflow/aws:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-common-depends-on
     postgres:

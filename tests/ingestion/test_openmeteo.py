@@ -1,3 +1,4 @@
+import gzip
 import json
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -150,8 +151,8 @@ HOUR = datetime(2026, 9, 28, 14, tzinfo=UTC)
 def test_extract_forecast_records_issue_time(load_fixture, clock, tmp_path):
     c, _ = make_client(respond(load_fixture("openmeteo/forecast.json")), clock)
     uri = extract_forecast(c, LocalWriter(tmp_path), [EAST, GURGAON], logical_hour=HOUR, now=NOW)
-    assert uri.endswith("bronze/openmeteo/forecasts/dt=2026-09-28/hour=14/forecast.json")
-    doc = json.loads(Path(uri).read_text())
+    assert uri.endswith("bronze/openmeteo/forecasts/dt=2026-09-28/hour=14/forecast.json.gz")
+    doc = json.loads(gzip.decompress(Path(uri).read_bytes()))
     assert doc["forecast_issued_at"] == "2026-09-28T14:05:00Z"
     assert doc["points"][0] == {"id": "delhi_east", "latitude": 28.6468, "longitude": 77.316}
     assert len(doc["responses"][0]) == 2
@@ -168,11 +169,16 @@ def test_extract_forecast_refuses_backfilled_hours(clock, tmp_path):
 
 def test_extract_actuals_and_previous_runs_keys(load_fixture, clock, tmp_path):
     w = LocalWriter(tmp_path)
-    c, _ = make_client(respond(load_fixture("openmeteo/archive.json")), clock)
-    assert extract_actuals(c, w, [EAST], date(2024, 11, 1)).endswith(
-        "bronze/openmeteo/actuals/dt=2024-11-01/actuals.json"
+    c, calls = make_client(respond(load_fixture("openmeteo/archive.json")), clock)
+    uri = extract_actuals(c, w, [EAST], date(2024, 11, 1), date(2024, 11, 2))
+    assert uri.endswith(
+        "bronze/openmeteo/actuals/dt=2024-11-01/actuals_2024-11-01_2024-11-02.json.gz"
     )
+    assert calls[0].url.params["end_date"] == "2024-11-02"
+    doc = json.loads(gzip.decompress(Path(uri).read_bytes()))
+    assert doc["start_date"] == "2024-11-01"
+    assert "fetched_at" in doc
     c, _ = make_client(respond(load_fixture("openmeteo/previous_runs.json")), clock)
-    assert extract_previous_runs(c, w, [EAST], date(2024, 11, 1)).endswith(
-        "bronze/openmeteo/previous_runs/dt=2024-11-01/previous_runs.json"
+    assert extract_previous_runs(c, w, [EAST], date(2024, 11, 1), date(2024, 11, 1)).endswith(
+        "previous_runs/dt=2024-11-01/previous_runs_2024-11-01_2024-11-01.json.gz"
     )
