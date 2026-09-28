@@ -1,0 +1,36 @@
+[project]
+name = "checkyouraqi"
+version = "0.1.0"
+description = "Air quality forecasting and alerting platform for India (Delhi NCR v1)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "ruff>=0.5",
+    "pre-commit>=3.7",
+]
+
+[tool.uv]
+# Editable installs of the project are skipped (hidden .pth bug on this machine);
+# run code with PYTHONPATH=. instead.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

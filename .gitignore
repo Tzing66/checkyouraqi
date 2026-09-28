@@ -1,0 +1,30 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+# airflow
+airflow/logs/
+# ml
+mlruns/
+*.db
+# local data
+data/
+
+# credentials never belong in the repo
+*accessKeys*.csv
+*credentials*.csv
+
+# planning doc stays local
+docs/checkyouraqi-plan.md

@@ -1,0 +1,7 @@
+# Bounding boxes are [min_lon, min_lat, max_lon, max_lat] (WGS84), the order OpenAQ v3 `bbox` expects.
+cities:
+  - id: delhi_ncr
+    name: Delhi NCR
+    timezone: Asia/Kolkata
+    # Covers Delhi, Gurugram, Faridabad, Noida/Greater Noida and Ghaziabad.
+    bbox: [76.84, 28.35, 77.60, 28.90]

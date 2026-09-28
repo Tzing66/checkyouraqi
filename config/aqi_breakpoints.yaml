@@ -1,0 +1,12 @@
+# India National AQI, PM2.5 sub-index (24-hour average, µg/m³).
+# Source: CPCB National Air Quality Index (2014). TODO: verify against the current CPCB document before Phase 2.
+pollutant: pm25
+averaging: 24h
+units: ug/m3
+categories:
+  - {name: good,                concentration: [0, 30],    aqi: [0, 50]}
+  - {name: satisfactory,        concentration: [31, 60],   aqi: [51, 100]}
+  - {name: moderately_polluted, concentration: [61, 90],   aqi: [101, 200]}
+  - {name: poor,                concentration: [91, 120],  aqi: [201, 300]}
+  - {name: very_poor,           concentration: [121, 250], aqi: [301, 400]}
+  - {name: severe,              concentration: [251, null], aqi: [401, 500]}
