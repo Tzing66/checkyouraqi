@@ -1,0 +1,12 @@
+# How old a station's latest reading can be before we stop calling it "live".
+# Shared by ingestion, dbt (mirrored as vars, checked by a test), the dashboard, API and alerts.
+station:
+  live_max_hours: 3        # matches the dbt source-freshness warn threshold (plan §6)
+  delayed_max_hours: 6     # matches the error threshold
+  inactive_max_days: 7     # older than this: offline (greyed out, excluded from medians)
+
+# If at least this share of stations is not live at once, it's the data source that's down,
+# not the individual sensors (e.g. the OpenAQ India outage from 2026-09-24).
+feed:
+  outage_min_share_not_live: 0.8
+  degraded_min_share_not_live: 0.3

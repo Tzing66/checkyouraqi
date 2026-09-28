@@ -2,6 +2,13 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-28 — Stale data: show the last reading, and say why it's old
+- **Owner requirement:** never show a blank when live data is missing. Show each station's last reading with its time (IST), plus an indicator of **why** it's old.
+- **Station status** by age of latest reading: live ≤ 3h, delayed ≤ 6h, inactive ≤ 7 days, offline > 7 days. The 3h/6h thresholds match the plan's dbt source-freshness warn/error levels. Offline stations are greyed out and excluded from zone/city medians.
+- **Feed status:** ≥ 80% of stations not live at once = **outage**. The message then blames the data service, not the sensor. ≥ 30% = degraded. This separates "sensor inactive" from "service down". On 2026-09-28, 100% of stations are not live, so it's an outage.
+- **One source of truth:** thresholds in `config/freshness.yaml`, rules and user-facing wording in `ingestion/freshness.py`. dbt mirrors the thresholds as vars (a test will check they match). Dashboard, API and alerts reuse the Python wording.
+- **Alerts** never fire on inactive or offline data. A feed outage sends one "source down / back" notice to the private chat.
+
 ## 2026-09-28 — Station discovery
 - **Reference-grade = `isMonitor`, OR a name ending in a government agency** (DPCC, CPCB, UPPCB, HSPCB, IMD, IITM, MHUA). Low-cost providers (AirGradient, PurpleAir, Clarity) are always excluded. This recovers 12 government stations that OpenAQ has with `isMonitor=false` and provider "N/A", including two new UPPCB sites (SRM Modinagar since 2026-04, Wave City since 2026-07, so both have short history).
 - **Ingest every active reference-grade station (70), not only the ≥70%-coverage ones.** Ingesting is cheap, and low-coverage or outage-hit stations may recover. Coverage is enforced later: dbt gap flags and exclusion from training.
