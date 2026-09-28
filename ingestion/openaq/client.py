@@ -6,20 +6,24 @@ validate with pydantic and still land the untouched JSON in bronze.
 
 from __future__ import annotations
 
-import logging
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 import httpx
 from pydantic import BaseModel
 
+from ingestion.http import (
+    ApiAuthError,
+    ApiError,
+    ApiRateLimitError,
+    ApiServerError,
+    Fetched,
+    HttpApi,
+)
 from ingestion.openaq.models import LatestReading, Location, Measurement, Meta
 from ingestion.rate_limit import RateLimiter
-
-log = logging.getLogger(__name__)
 
 BASE_URL = "https://api.openaq.org/v3"
 # OpenAQ allows ~60 requests/minute; stay a little under it.
@@ -28,27 +32,11 @@ PAGE_LIMIT = 1000
 
 T = TypeVar("T", bound=BaseModel)
 
-
-class OpenAQError(Exception):
-    pass
-
-
-class OpenAQAuthError(OpenAQError):
-    """Bad or missing API key. Never retried: hammering with a bad key risks a ban."""
-
-
-class OpenAQRateLimitError(OpenAQError):
-    pass
-
-
-class OpenAQServerError(OpenAQError):
-    pass
-
-
-@dataclass
-class Fetched(Generic[T]):
-    items: list[T] = field(default_factory=list)
-    raw_pages: list[dict[str, Any]] = field(default_factory=list)
+# Source-specific names for the shared transport errors.
+OpenAQError = ApiError
+OpenAQAuthError = ApiAuthError
+OpenAQRateLimitError = ApiRateLimitError
+OpenAQServerError = ApiServerError
 
 
 class OpenAQClient:
@@ -64,11 +52,15 @@ class OpenAQClient:
     ) -> None:
         if not api_key:
             raise OpenAQAuthError("OpenAQ API key is empty")
-        self._http = http or httpx.Client(base_url=base_url, timeout=30)
-        self._http.headers["X-API-Key"] = api_key
-        self._limiter = limiter or RateLimiter(DEFAULT_MIN_INTERVAL_S, sleep=sleep)
-        self._max_retries = max_retries
-        self._sleep = sleep
+        http = http or httpx.Client(base_url=base_url, timeout=30)
+        http.headers["X-API-Key"] = api_key
+        self._api = HttpApi(
+            "OpenAQ",
+            http,
+            limiter or RateLimiter(DEFAULT_MIN_INTERVAL_S, sleep=sleep),
+            max_retries=max_retries,
+            sleep=sleep,
+        )
 
     def __enter__(self) -> OpenAQClient:
         return self
@@ -77,7 +69,7 @@ class OpenAQClient:
         self.close()
 
     def close(self) -> None:
-        self._http.close()
+        self._api.close()
 
     # --- endpoints -----------------------------------------------------------------------
 
@@ -112,7 +104,7 @@ class OpenAQClient:
         out: Fetched[T] = Fetched()
         page = 1
         while True:
-            payload = self._get(path, {**params, "limit": PAGE_LIMIT, "page": page})
+            payload = self._api.get_json(path, {**params, "limit": PAGE_LIMIT, "page": page})
             Meta.model_validate(payload["meta"])
             results = payload["results"]
             out.raw_pages.append(payload)
@@ -121,41 +113,6 @@ class OpenAQClient:
             if len(results) < PAGE_LIMIT:
                 return out
             page += 1
-
-    def _get(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
-        last_error = ""
-        for attempt in range(self._max_retries):
-            self._limiter.wait()
-            try:
-                resp = self._http.get(path, params=params)
-            except httpx.TransportError as e:
-                last_error = f"transport error: {e}"
-                self._sleep(_backoff(attempt))
-                continue
-
-            if resp.status_code in (401, 403):
-                raise OpenAQAuthError(f"{path}: HTTP {resp.status_code} {resp.text[:200]}")
-            if resp.status_code == 429:
-                wait = max(_int(resp.headers.get("x-ratelimit-reset")) or 0, _backoff(attempt))
-                log.warning("OpenAQ 429 on %s, sleeping %.0fs", path, wait)
-                last_error = "HTTP 429"
-                self._sleep(wait)
-                continue
-            if resp.status_code >= 500:
-                last_error = f"HTTP {resp.status_code}"
-                self._sleep(_backoff(attempt))
-                continue
-            if resp.status_code >= 400:
-                raise OpenAQError(f"{path}: HTTP {resp.status_code} {resp.text[:200]}")
-
-            self._limiter.observe(resp.headers)
-            return resp.json()
-
-        if last_error == "HTTP 429":
-            raise OpenAQRateLimitError(
-                f"{path}: still rate limited after {self._max_retries} tries"
-            )
-        raise OpenAQServerError(f"{path}: {last_error} after {self._max_retries} tries")
 
 
 def _window(start: datetime, end: datetime) -> dict[str, str]:
@@ -166,14 +123,3 @@ def _window(start: datetime, end: datetime) -> dict[str, str]:
         raise ValueError("end must be after start")
     fmt = "%Y-%m-%dT%H:%M:%SZ"
     return {"datetime_from": start.strftime(fmt), "datetime_to": end.strftime(fmt)}
-
-
-def _backoff(attempt: int) -> float:
-    return float(min(2**attempt * 2, 60))
-
-
-def _int(value: str | None) -> int | None:
-    try:
-        return int(value) if value is not None else None
-    except ValueError:
-        return None

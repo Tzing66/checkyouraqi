@@ -2,6 +2,15 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-28 — Open-Meteo weather
+- **Leak-free weather for the backfill:** Open-Meteo's previous-runs API returns "the forecast for hour H as issued N days earlier". Verified back to 2024-09, which covers the 2-year backfill, for temperature, RH, wind speed/direction, precipitation and surface pressure. Training features for the 24/48/72h horizons use `<var>_previous_day1/2/3`. Live prediction uses the current forecast, stored with the time we fetched it.
+- **Boundary layer height has no previous-run data** (checked GFS, ECMWF and best_match). It's used only as the value observed at prediction time, never as a forecast of the target hour. Archive (ERA5) values in the backfill and forecast-API recent hours live are a small source mismatch, acceptable for v1.
+- **`forecast_issued_at` = the time we fetched the forecast**, not the model run time (which Open-Meteo doesn't expose). This is conservative, because the forecast certainly existed by then.
+- **The forecast extractor refuses logical hours more than 2h from now.** The forecast API only returns today's forecast, so a backfilled or late run would store it under a past issue time, which is leakage. History comes from previous-runs instead, and the forecast DAG must not catch up.
+- **One weather point per zone (9), at the centroid of its non-co-located stations.** Open-Meteo's global models are 10–25 km grids (Anand Vihar snapped ~4 km), so per-station points add little signal at about 8× the API usage (the free tier counts each point as a call).
+- **Actuals** are fetched per day from the ERA5 archive, which lags ~5 days. The daily DAG re-fetches the last 7 days so late data fills in (idempotent overwrite).
+- **Shared transport (`ingestion/http.py`)** for all API clients: throttling, 429/5xx/transport retries, no retry on 401/403, API error messages surfaced. httpx request logging is off because FIRMS puts its key in the URL.
+
 ## 2026-09-28 — Stale data: show the last reading, and say why it's old
 - **Owner requirement:** never show a blank when live data is missing. Show each station's last reading with its time (IST), plus an indicator of **why** it's old.
 - **Station status** by age of latest reading: live ≤ 3h, delayed ≤ 6h, inactive ≤ 7 days, offline > 7 days. The 3h/6h thresholds match the plan's dbt source-freshness warn/error levels. Offline stations are greyed out and excluded from zone/city medians.
