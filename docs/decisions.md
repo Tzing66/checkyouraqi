@@ -12,6 +12,8 @@ Decisions not covered by the plan, newest first. Format: date — decision — w
   - FIRMS from 2025-01, per day.
   - The ~1-month head start gives lag features from the first target day. Used the OpenAQ API rather than the S3 archive: same coverage, and ~1,400 calls is ~25 min.
 - **`ingest_openaq` is paused during the OpenAQ backfill** so the two don't share the 60/min key limit and risk repeated 429s. Unpause afterwards.
+- **Backfill results (2026-09-28):** OpenAQ ~740k station-hours across 69 stations (1,242 station-month files, 41 MB gz). FIRMS 635 days, 158,658 VIIRS detections. Weather, previous runs and CAMS: 21 months. Total bronze ~60 MB. Zero 429s.
+- **Wave City (6458520, pm25 sensor 17025422) has no retrievable history:** OpenAQ `/hours` always returns HTTP 500 for it, and `/measurements` returns nothing. It's the same sensor that failed in the Phase 0 spike. Its `/latest` works, so it stays in `stations.yaml` for live data. The backfill now records and skips per-station failures (bad keys still stop the run) instead of crashing.
 - **Transport:** a 200 with a non-JSON body (seen once from the Open-Meteo archive) is now retried like a 5xx.
 
 ## 2026-09-28 — Ingestion DAGs and bronze format

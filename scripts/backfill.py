@@ -21,6 +21,7 @@ import yaml
 
 from ingestion.firms.client import SENSORS, FirmsClient, source_for
 from ingestion.firms.extract import extract_fires
+from ingestion.http import ApiAuthError, ApiError
 from ingestion.openaq.client import OpenAQClient
 from ingestion.openaq.discover import load_city
 from ingestion.openaq.extract import StationRef, extract_history_month, history_key
@@ -76,12 +77,21 @@ def backfill_openaq(writer: Writer, s: Settings, start: date, end: date) -> None
                 continue
             todo.append((StationRef(st["location_id"], st["pm25_sensor_id"]), m_start))
     log.info("openaq: %d station-months to fetch (~%.0f min)", len(todo), len(todo) * 1.2 / 60)
-    hours = 0
+    hours, failed = 0, []
     with OpenAQClient(s.openaq_api_key) as client:
         for i, (station, month) in enumerate(todo, 1):
-            hours += extract_history_month(client, writer, station, month)
+            try:
+                hours += extract_history_month(client, writer, station, month)
+            except ApiAuthError:
+                raise
+            except ApiError as e:
+                # e.g. Wave City's sensor: /hours always 500s. Skip it, keep the rest.
+                log.warning("openaq: skipped station %s %s: %s", station.location_id, month, e)
+                failed.append((station.location_id, month.strftime("%Y-%m")))
             if i % 50 == 0 or i == len(todo):
                 log.info("openaq: %d/%d done, %d station-hours so far", i, len(todo), hours)
+    if failed:
+        log.warning("openaq: %d station-months skipped (rerun to retry): %s", len(failed), failed)
 
 
 def backfill_weather(writer: Writer, s: Settings, start: date, end: date) -> None:
