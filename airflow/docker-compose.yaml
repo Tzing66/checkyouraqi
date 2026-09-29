@@ -35,6 +35,8 @@ x-airflow-common: &airflow-common
     - ./logs:/opt/airflow/logs
     - ../ingestion:/opt/airflow/project/ingestion:ro
     - ../config:/opt/airflow/project/config:ro
+    - ../lakehouse:/opt/airflow/project/lakehouse:ro
+    - ../dbt:/opt/airflow/project/dbt:ro
     # Local only. On EC2 (Phase 5) the instance role replaces this mount.
     - ~/.aws:/opt/airflow/aws:ro
   user: "${AIRFLOW_UID:-50000}:0"
@@ -56,7 +58,7 @@ services:
       interval: 10s
       retries: 5
       start_period: 5s
-    mem_limit: 200m
+    mem_limit: 150m
     restart: unless-stopped
 
   airflow-init:
@@ -75,14 +77,15 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-    mem_limit: 450m
+    mem_limit: 350m
     restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
-  # The scheduler also runs task processes under LocalExecutor, so it gets the biggest cap.
+  # The scheduler also runs task processes (incl. dbt) under LocalExecutor, so it gets the
+  # biggest cap. Caps sized from measured peaks (docs/decisions.md): total 1.65 GB.
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
@@ -92,7 +95,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-    mem_limit: 700m
+    mem_limit: 900m
     restart: unless-stopped
     depends_on:
       <<: *airflow-common-depends-on

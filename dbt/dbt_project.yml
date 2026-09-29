@@ -8,6 +8,8 @@ macro-paths: ["macros"]
 seed-paths: ["seeds"]
 test-paths: ["tests"]
 target-path: target
+# Overridable so the read-only mount in Airflow can install packages under /tmp.
+packages-install-path: "{{ env_var('DBT_PACKAGES_INSTALL_PATH', 'dbt_packages') }}"
 clean-targets: [target, dbt_packages]
 
 vars:

@@ -2,6 +2,46 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-29 — Phase 2 lakehouse
+- **Layout:**
+  - Bronze = 9 Athena external tables over the raw files (`aqi_bronze`), created by `dbt run-operation create_bronze_tables`, using the OpenX JSON SerDe and partition projection (no crawlers, no MSCK).
+  - Silver (`aqi_silver`) and gold (`aqi_gold`) are dbt models, Iceberg by default, stored at `s3://<bucket>/lake/<schema>/<table>-<uuid>/` (`schema_table_unique`, required for Iceberg table swaps). Plan §6 said `silver/`/`gold/` prefixes; this is equivalent.
+- **Incremental only where data grows:** the OpenAQ PM2.5 hourly data, latest readings, and weather/CAMS forecasts use Iceberg MERGE. Weather actuals, previous runs and CAMS history (a few MB each) are rebuilt in full each run, which is simpler and cheap. FIRMS is a view (~13 MB). Plan §3 says "dbt models are incremental"; the full-rebuild ones each scan under 10 MB.
+- **Partition pruning:** `incremental_since()` resolves the bronze partition filter to a literal at compile time. A scalar subquery would defeat partition projection and scan everything.
+- **Station grid (`int_station_hourly`):**
+  - Complete IST-aligned hours from first reading to now. Gaps are flagged (missing, out of range, < 50% coverage, 6h flatline), not filled.
+  - `pm25` is set only when valid.
+  - History up to the outage: 82% valid, 14.6% missing. Weakest stations: Faridabad Sector 30 (24% valid) and Teri Gram (38%, 201 flatlined hours).
+- **AQI:**
+  - CPCB 24h average needs ≥ 16 valid hours.
+  - The category comes from the rounded 24h average, because CPCB breakpoints are integers (0–30, 31–60...).
+  - The sub-index is NULL in the open-ended "severe" band until the upper breakpoint is verified.
+  - Zone/city values = median across stations, excluding co-located duplicates.
+  - Daily city values use the IST civil day (column `date_ist`); everything else is UTC.
+- **Fires:**
+  - One satellite per day (SNPP, else NOAA-20). Low-confidence detections dropped.
+  - Placed by distance/bearing from Connaught Place into 8 sectors × 3 distance bands.
+  - Stubble season 2025 (15 Oct–15 Nov): 6,643 NW detections vs 737 W, which validates the upwind-sector feature.
+- **Freshness:**
+  - `dbt source freshness` uses `loaded_at_query`. OpenAQ is measured on actual sampling time (3h warn / 6h error, plan §6). Forecasts 2h/6h. FIRMS 2d/4d.
+  - It's a separate Airflow task from the build and export, so a stale source goes red without stopping publication of last-known data.
+  - `fct_station_status` / `fct_feed_status` implement the owner's stale-data rule. On 2026-09-29, all 70 stations are `inactive`, and the feed flipped to `outage` at 2026-09-24 20:30 UTC (3h after the last CPCB reading).
+- **Public export:**
+  - Athena UNLOAD → Parquet under `public/<dataset>/run=<id>/`, with `public/manifest.json` written last (readers never see a partial export), keeping the previous run.
+  - Timestamps are cast to millisecond precision because UNLOAD's Parquet writer rejects `timestamp(6)`.
+  - "Recent" windows are anchored to the newest data, not the clock, so an outage still shows the last 30 days.
+  - 10 datasets, ~370 KB, ~2.5 MB scanned per export. Verified reading via DuckDB (httpfs + credential chain).
+- **`dbt_build` DAG:** hourly at :25, after ingestion at :05/:10. dbt build → (source freshness ‖ export_public).
+  - dbt runs from its own virtualenv in the image (its pins must not touch Airflow's).
+  - The repo `dbt/` is mounted read-only, with target/logs/packages under /tmp.
+  - 2 dbt threads in Airflow (4 locally).
+- **Memory, re-measured with dbt:** dbt runs inside the scheduler container (LocalExecutor).
+  - With 4 threads it hit the old 700 MiB cap (698.7).
+  - With 2 threads the peak is scheduler 781 MiB, api-server 209, dag-processor 194, postgres 41: 1.23 GB total.
+  - New caps: scheduler 900m, api-server 350m, dag-processor 250m, postgres 150m (1.65 GB). This still fits a t3.small with swap. The scheduler is the one to watch in Phase 5.
+- **Deferred to Phase 3/4, by design:** `fct_features_hourly` (built with the leakage test in Phase 3), `fct_forecasts` and `fct_forecast_accuracy` (they need model output; Phase 4 predict/monitor DAGs).
+- **Cost so far for Phase 2:** well under USD 0.01 of Athena. Every gold query in the acceptance check scanned < 0.1 MB (criterion: < 10 MB).
+
 ## 2026-09-29 — Phase 1 accepted early; OpenAQ CPCB outage investigated
 - **Phase 1 accepted at ~18h of the 24h run (owner decision).** Evidence: 47/47 runs succeeded with no retries; no gaps in either hourly DAG (openaq 15:05→09:05, weather 14:10→09:10 UTC); both daily DAGs' first scheduled runs on time (02:00, 03:30 UTC); clean UTC midnight rollover in all four hourly outputs; scheduler memory flat at ~530/700 MiB; 0 task warnings. One unexplained dag-processor self-restart (2026-09-28 16:37 UTC, not OOM, no error logged, recovered in 5 s, no runs affected); watch for repeats. **Not verifiable:** live PM2.5 flowing hourly, because of the outage below. Re-check once OpenAQ recovers.
 - **DAGs paused and the Airflow stack stopped** (volumes kept) while Phase 2 is built.
