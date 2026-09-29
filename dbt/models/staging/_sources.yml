@@ -11,8 +11,29 @@ sources:
         description: Backfill, one file per station-month of PM2.5 hourly aggregates.
       - name: openaq_latest
         description: Hourly DAG, latest value of every sensor per station (includes dead sensors).
+        config:
+          # Plan §6: measurements < 3h old warn, < 6h error. Measures when PM2.5 was actually
+          # sampled (newest reading), not when we fetched, scanning only the last 2 days.
+          freshness:
+            warn_after: {count: 3, period: hour}
+            error_after: {count: 6, period: hour}
+          loaded_at_query: >
+            select max(from_iso8601_timestamp(r.m.datetime.utc))
+            from aqi_bronze.openaq_latest
+            cross join unnest(stations) as s (location_id, pages)
+            cross join unnest(s.pages) as p (page)
+            cross join unnest(page.results) as r (m)
+            where dt >= date_format(current_date - interval '2' day, '%Y-%m-%d')
       - name: openmeteo_forecasts
         description: Hourly weather forecast per zone point, with forecast_issued_at.
+        config:
+          freshness:
+            warn_after: {count: 2, period: hour}
+            error_after: {count: 6, period: hour}
+          loaded_at_query: >
+            select max(from_iso8601_timestamp(forecast_issued_at))
+            from aqi_bronze.openmeteo_forecasts
+            where dt >= date_format(current_date - interval '2' day, '%Y-%m-%d')
       - name: openmeteo_air_quality_forecasts
         description: Hourly CAMS PM2.5/PM10 forecast per zone point, with forecast_issued_at.
       - name: openmeteo_actuals
@@ -23,3 +44,11 @@ sources:
         description: CAMS PM2.5/PM10 history (best estimate per hour; only usable lagged).
       - name: firms_fires
         description: VIIRS fire detections, one CSV per day and source (SNPP/NOAA20 x SP/NRT).
+        config:
+          freshness:
+            warn_after: {count: 2, period: day}
+            error_after: {count: 4, period: day}
+          loaded_at_query: >
+            select max(cast(date_parse(dt, '%Y-%m-%d') as timestamp))
+            from aqi_bronze.firms_fires
+            where dt >= date_format(current_date - interval '7' day, '%Y-%m-%d')
