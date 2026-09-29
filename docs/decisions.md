@@ -2,6 +2,15 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-29 — Dashboard (Phase 4)
+- **Streamlit + folium map + Altair charts, reading only `public/`** (manifest → Parquet, fetched in parallel; the manifest now lists each dataset's files and an `empty` flag, so it also works over plain HTTPS in Phase 5). Cached for 5 minutes.
+- **Pages:** Overview (city/zone tiles, station map, nearest-station lookup via locality search / coordinates / map click), Station (status, last reading, 24/48/72h forecast cards with a stale-input warning, 30-day history, forecast vs actual), Model health (backtest vs baselines, MAE by month, top features, live accuracy, drift), About (attribution, method, caveats).
+- **AQI colours:** India's official hues, treated as a fixed status scale (like the dataviz skill's status palette: never themed, always shipped with the category name as text). The dataviz validator shows the official scale fails the one-hue ordinal rules (by design, it's multi-hue), so labels are mandatory. Two swatches are darkened to clear the 2:1 floor on light and dark surfaces: satisfactory `#92D050` → `#7FBF3F`, moderately polluted yellow → `#C9A800`. Two-series charts use dataviz categorical slots 1–2 (blue/orange; dark-mode steps too), with legend and direct labels.
+- **Nominatim** (locality search): identifying User-Agent, ≤ 1 req/s, results cached a day, bounded to the NCR box, OSM attribution shown.
+- **Drift verdict needs ≥ 24 served hours** (see Phase 4 monitor).
+- **Performance** (AppTest, live S3 snapshot): cold Overview load 1.95 s after parallelising fetches (was 2.9 s sequential), warm 0.07–0.4 s on every page; criterion < 3 s. No exceptions on any page.
+- **Lint:** E501 is relaxed for `tests/**` only (fixture data).
+
 ## 2026-09-29 — Phase 4 decisions (owner)
 1. **Forecast even when station data is stale (option b):** forecasts are produced from each station's last known values and labelled with the input age (`input_age_hours`, `is_stale_input`). Surfaces show a warning instead of hiding the forecast.
 2. **Live weather features = the same previous-runs forecasts as training** (`days_before = h/24 + 1`, fetched live from Open-Meteo's previous-runs API), so train and serve inputs match.

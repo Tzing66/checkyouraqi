@@ -84,6 +84,8 @@ def test_manifest_written_after_all_unloads_and_points_at_run():
     assert body["exported_at"] == "2026-09-29T10:30:00Z"
     assert set(body["datasets"]) == {"a", "b"}
     assert manifest["bytes_scanned"] == 2010
+    assert manifest["datasets"]["a"]["keys"] == [f"public/a/run={run}/part-0.parquet"]
+    assert manifest["datasets"]["a"]["empty"] is False
     unloads = [e[1] for e in s3.events if e[0] == "unload"]
     assert len(unloads) == 2
 

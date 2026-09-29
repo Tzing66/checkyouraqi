@@ -168,14 +168,25 @@ def export(
         sql = unload_sql(select_sql(ds, columns.get(ds.table, [])), f"s3://{bucket}/{prefix}")
         result = query(athena, sql, fetch_rows=False)
         total_scanned += result.bytes_scanned
+        # List the files so HTTPS readers (which can't list S3) know what to fetch. An
+        # empty result (e.g. accuracy during an outage) writes no files at all.
+        files = sorted(
+            o["Key"] for o in s3.list_objects_v2(Bucket=bucket, Prefix=prefix).get("Contents", [])
+        )
         manifest["datasets"][ds.name] = {
             "path": f"s3://{bucket}/{prefix}",
             "glob": f"s3://{bucket}/{prefix}*",
+            "keys": files,
+            "empty": not files,
             "description": ds.description,
         }
 
     # Static files published elsewhere (the model card comes with each model promotion).
-    manifest["files"] = {"model_card": f"s3://{bucket}/public/model_card.json"}
+    manifest["files"] = {
+        "model_card": "public/model_card.json",
+        "drift_summary": "public/drift_summary.json",
+        "accuracy_summary": "public/accuracy_summary.json",
+    }
 
     # Publish atomically: readers switch to the new run only once everything is written.
     s3.put_object(
