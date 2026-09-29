@@ -1,0 +1,58 @@
+version: 2
+
+# Generated from config/ by scripts/export_seeds.py; do not edit by hand.
+seeds:
+  - name: seed_stations
+    description: Active reference-grade stations (config/stations.yaml) with their reviewed zone.
+    config:
+      column_types:
+        location_id: bigint
+        pm25_sensor_id: bigint
+        colocated_with: bigint
+        latitude: double
+        longitude: double
+    columns:
+      - name: location_id
+        data_tests: [unique, not_null]
+      - name: zone_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('seed_zones'), field: zone_id}}
+      - name: city_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('seed_cities'), field: city_id}}
+  - name: seed_station_sensors
+    description: Live sensor per station and parameter (dead legacy sensors excluded).
+    config:
+      column_types: {location_id: bigint, sensor_id: bigint}
+    columns:
+      - name: sensor_id
+        data_tests: [unique, not_null]
+      - name: location_id
+        data_tests:
+          - relationships: {arguments: {to: ref('seed_stations'), field: location_id}}
+  - name: seed_zones
+    columns:
+      - name: zone_id
+        data_tests: [unique, not_null]
+  - name: seed_cities
+    columns:
+      - name: city_id
+        data_tests: [unique, not_null]
+  - name: seed_weather_points
+    description: One Open-Meteo point per zone (centroid of its non-co-located stations).
+    config:
+      column_types: {latitude: double, longitude: double}
+    columns:
+      - name: point_id
+        data_tests:
+          - unique
+          - relationships: {arguments: {to: ref('seed_zones'), field: zone_id}}
+  - name: seed_aqi_breakpoints
+    description: India NAQI PM2.5 breakpoints (24h average, µg/m³). The top category is open-ended.
+    config:
+      column_types: {pm25_low: double, pm25_high: double, aqi_low: int, aqi_high: int}
+  - name: seed_festivals
+    config:
+      column_types: {date: date}

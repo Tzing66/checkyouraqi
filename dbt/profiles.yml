@@ -11,6 +11,6 @@ checkyouraqi:
       schema: aqi_silver
       s3_staging_dir: "s3://{{ env_var('DATA_BUCKET') }}/athena-results/"
       s3_data_dir: "s3://{{ env_var('DATA_BUCKET') }}/lake/"
-      s3_data_naming: schema_table
+      s3_data_naming: schema_table_unique
       threads: 4
       num_retries: 2

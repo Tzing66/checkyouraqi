@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: aqi_bronze
+    description: Raw landed files (external tables created by `run-operation create_bronze_tables`).
+    tables:
+      - name: openaq_pm25_hours
+        description: Hourly DAG, trailing-6h PM2.5 hourly aggregates per station (map keyed by location id).
+      - name: openaq_pm25_history
+        description: Backfill, one file per station-month of PM2.5 hourly aggregates.
+      - name: openaq_latest
+        description: Hourly DAG, latest value of every sensor per station (includes dead sensors).
+      - name: openmeteo_forecasts
+        description: Hourly weather forecast per zone point, with forecast_issued_at.
+      - name: openmeteo_air_quality_forecasts
+        description: Hourly CAMS PM2.5/PM10 forecast per zone point, with forecast_issued_at.
+      - name: openmeteo_actuals
+        description: ERA5 observed weather, date-range files (overlapping; latest fetch wins).
+      - name: openmeteo_previous_runs
+        description: Historical forecasts as issued 1/2/3 days before each hour (leak-free features).
+      - name: openmeteo_air_quality
+        description: CAMS PM2.5/PM10 history (best estimate per hour; only usable lagged).
+      - name: firms_fires
+        description: VIIRS fire detections, one CSV per day and source (SNPP/NOAA20 x SP/NRT).

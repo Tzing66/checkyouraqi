@@ -30,3 +30,10 @@ def test_dbt_freshness_vars_match_config():
     assert (
         dbt_vars["feed_degraded_min_share_not_live"] == fresh["feed"]["degraded_min_share_not_live"]
     )
+
+
+def test_dbt_seeds_are_in_sync_with_config():
+    from scripts.export_seeds import SEEDS_DIR, build
+
+    for name, text in build().items():
+        assert (SEEDS_DIR / name).read_text() == text, f"{name} is stale: run export_seeds.py"

@@ -1,0 +1,71 @@
+location_id,station_name,agency,provider,latitude,longitude,pm25_sensor_id,city_id,zone_id,colocated_with,first_seen_utc
+17,"R K Puram, Delhi - DPCC",DPCC,CPCB,28.563262,77.186937,12234787,delhi_ncr,delhi_south,,2016-02-05T14:55:00Z
+50,"Punjabi Bagh, Delhi - DPCC",DPCC,CPCB,28.674045,77.131023,12234796,delhi_ncr,delhi_west,,2016-02-05T14:55:00Z
+235,"Anand Vihar, New Delhi - DPCC",DPCC,CPCB,28.646835,77.316032,12235610,delhi_ncr,delhi_east,,2016-02-05T14:15:00Z
+301,"Vikas Sadan, Gurugram - HSPCB",HSPCB,CPCB,28.4501238,77.0263051,14258988,delhi_ncr,gurugram,,2016-03-25T08:00:00Z
+5404,"Pusa, Delhi - IMD",IMD,CPCB,28.639645,77.146263,12234702,delhi_ncr,delhi_west,,2017-09-15T06:00:00Z
+5541,"Burari Crossing, New Delhi - IMD",IMD,CPCB,28.7256504,77.2011573,12234684,delhi_ncr,delhi_north,,2018-03-09T06:00:00Z
+5570,"Aya Nagar, New Delhi - IMD",IMD,CPCB,28.474261,77.131606,12234708,delhi_ncr,delhi_south,,2018-03-09T05:30:00Z
+5586,"Sirifort, Delhi - CPCB",CPCB,CPCB,28.5504249,77.2159377,12234769,delhi_ncr,delhi_south,,2025-02-18T20:15:00Z
+5598,"Sector - 125, Noida, UP - UPPCB",UPPCB,CPCB,28.5447608,77.3231257,12235187,delhi_ncr,noida,,2025-02-18T20:15:00Z
+5610,"North Campus, DU, Delhi - IMD",IMD,CPCB,28.6573814,77.1585447,12234690,delhi_ncr,delhi_north,,2018-03-09T05:30:00Z
+5613,"ITO, New Delhi - CPCB",CPCB,CPCB,28.628624,77.24106,12234753,delhi_ncr,delhi_central,,2018-03-09T05:30:00Z
+5616,"Sector - 62, Noida, UP - IMD",IMD,CPCB,28.6245479,77.3577104,12234720,delhi_ncr,noida,,2025-02-18T20:13:00Z
+5622,"NSIT Dwarka, Delhi - CPCB",CPCB,CPCB,28.60909,77.0325413,12234744,delhi_ncr,delhi_west,,2018-03-09T06:00:00Z
+5626,"DTU, New Delhi - CPCB",CPCB,CPCB,28.7500499,77.1112615,12234760,delhi_ncr,delhi_north,,2018-03-09T05:30:00Z
+5627,"CRRI Mathura Road, New Delhi - IMD",IMD,CPCB,28.5512005,77.2735737,12234678,delhi_ncr,delhi_south,,2018-03-09T05:30:00Z
+5630,"Shadipur, Delhi - CPCB",CPCB,CPCB,28.6514781,77.1473105,12234726,delhi_ncr,delhi_west,,2018-03-09T06:00:00Z
+5634,"Lodhi Road, New Delhi - IMD",IMD,CPCB,28.5918245,77.2273074,12234714,delhi_ncr,delhi_central,,2018-03-09T05:30:00Z
+5650,"IGI Airport (T3), Delhi - IMD",IMD,CPCB,28.5627763,77.1180053,12234696,delhi_ncr,delhi_west,,2025-02-18T20:16:00Z
+5665,"Vasundhara, Ghaziabad - UPPCB",UPPCB,CPCB,28.6603346,77.3572563,12235160,delhi_ncr,ghaziabad,,2018-03-09T06:00:00Z
+6356,"Pusa, Delhi - DPCC",DPCC,CPCB,28.639645,77.146262,12235321,delhi_ncr,delhi_west,5404,2025-02-18T20:15:00Z
+6358,"Mandir Marg, New Delhi - DPCC",DPCC,CPCB,28.636429,77.201067,12234778,delhi_ncr,delhi_central,,2018-08-10T06:00:00Z
+6359,"IHBAS, Dilshad Garden,New Delhi - CPCB",CPCB,CPCB,28.6811736,77.3025234,12234735,delhi_ncr,delhi_east,,2018-04-28T15:45:00Z
+6924,"Indirapuram, Ghaziabad - UPPCB",UPPCB,CPCB,28.646233,77.358075,12235779,delhi_ncr,ghaziabad,,2019-04-27T12:00:00Z
+6929,"Major Dhyan Chand National Stadium, Delhi - DPCC",DPCC,CPCB,28.611281,77.237738,12235047,delhi_ncr,delhi_central,,2018-08-10T07:00:00Z
+6931,"Dwarka-Sector 8, Delhi - DPCC",DPCC,CPCB,28.5710274,77.0719006,12235020,delhi_ncr,delhi_west,,2018-08-10T06:15:00Z
+6932,"Alipur, Delhi - DPCC",DPCC,CPCB,28.815329,77.15301,12235698,delhi_ncr,delhi_north,,2018-12-15T15:00:00Z
+6934,"Dr. Karni Singh Shooting Range, Delhi - DPCC",DPCC,CPCB,28.498571,77.26484,12235011,delhi_ncr,delhi_south,,2018-08-10T06:30:00Z
+6936,"Arya Nagar, Bahadurgarh - HSPCB",HSPCB,CPCB,28.6701,76.9254,14233904,delhi_ncr,delhi_west,,2019-02-13T00:15:00Z
+6938,"Vivek Vihar, Delhi - DPCC",DPCC,CPCB,28.672342,77.31526,12235133,delhi_ncr,delhi_east,,2018-12-15T15:15:00Z
+6953,"Sector-2 IMT, Manesar - HSPCB",HSPCB,CPCB,28.360699,76.93609,14250045,delhi_ncr,gurugram,,2019-01-02T22:00:00Z
+6957,"Jawaharlal Nehru Stadium, Delhi - DPCC",DPCC,CPCB,28.58028,77.233829,12235038,delhi_ncr,delhi_central,,2018-08-10T06:00:00Z
+6960,"Patparganj, Delhi - DPCC",DPCC,CPCB,28.623748,77.287205,12235101,delhi_ncr,delhi_east,,2018-08-10T06:00:00Z
+6978,"Knowledge Park - III, Greater Noida - UPPCB",UPPCB,CPCB,28.47272,77.482,12235196,delhi_ncr,noida,,2018-08-10T06:00:00Z
+6980,"Sector-1, Noida - UPPCB",UPPCB,CPCB,28.589247,77.321962,12235951,delhi_ncr,noida,,2019-06-28T05:45:00Z
+6986,"Knowledge Park - V, Greater Noida - UPPCB",UPPCB,CPCB,28.557054,77.453663,12235935,delhi_ncr,noida,,2019-06-28T06:00:00Z
+6988,"Sector-116, Noida - UPPCB",UPPCB,CPCB,28.56923,77.393848,12235942,delhi_ncr,noida,,2025-02-18T20:15:00Z
+7005,"Loni, Ghaziabad - UPPCB",UPPCB,CPCB,28.757294,77.278792,12235787,delhi_ncr,ghaziabad,,2019-04-27T11:45:00Z
+8118,New Delhi,,AirNow,28.63576,77.22445,23534,delhi_ncr,delhi_central,,2016-11-09T19:00:00Z
+8235,"Jahangirpuri, Delhi - DPCC",DPCC,CPCB,28.73282,77.170633,12235029,delhi_ncr,delhi_north,,2018-08-10T07:00:00Z
+8239,"Okhla Phase-2, Delhi - DPCC",DPCC,CPCB,28.530785,77.271255,12235074,delhi_ncr,delhi_south,,2018-08-22T11:45:00Z
+8365,"Nehru Nagar, Delhi - DPCC",DPCC,CPCB,28.56789,77.250515,12235083,delhi_ncr,delhi_south,,2018-08-10T06:00:00Z
+8472,"Bawana, Delhi - DPCC",DPCC,CPCB,28.7762,77.051074,12235294,delhi_ncr,delhi_north,,2018-08-10T06:15:00Z
+8475,"Sonia Vihar, Delhi - DPCC",DPCC,CPCB,28.710508,77.249485,12235110,delhi_ncr,delhi_north,,2018-08-10T08:15:00Z
+8915,"Wazirpur, Delhi - DPCC",DPCC,CPCB,28.699793,77.165453,12235124,delhi_ncr,delhi_north,,2018-12-15T15:00:00Z
+8917,"Ashok Vihar, Delhi - DPCC",DPCC,CPCB,28.695381,77.181665,12235002,delhi_ncr,delhi_north,,2018-12-15T15:00:00Z
+10484,"Sri Aurobindo Marg, Delhi - DPCC",DPCC,CPCB,28.531346,77.190156,12235312,delhi_ncr,delhi_south,,2018-12-15T15:00:00Z
+10485,"Narela, Delhi - DPCC",DPCC,CPCB,28.822836,77.101981,12235056,delhi_ncr,delhi_north,,2018-08-10T05:45:00Z
+10486,"Mundka, Delhi - DPCC",DPCC,CPCB,28.684678,77.076574,12235303,delhi_ncr,delhi_west,,2018-12-15T15:00:00Z
+10488,"Najafgarh, Delhi - DPCC",DPCC,CPCB,28.570173,76.933762,12235065,delhi_ncr,delhi_west,,2018-12-15T15:00:00Z
+10820,"Sector 30, Faridabad - HSPCB",HSPCB,CPCB,28.4417,77.3217,12236236,delhi_ncr,faridabad,,2025-02-18T20:15:00Z
+10825,"Sector-51, Gurugram - HSPCB",HSPCB,CPCB,28.4227,77.0667,12236259,delhi_ncr,gurugram,,2020-03-11T09:00:00Z
+10831,"Rohini, Delhi - DPCC",DPCC,CPCB,28.732528,77.11992,12235092,delhi_ncr,delhi_north,,2018-08-10T06:00:00Z
+10900,"Teri Gram, Gurugram - HSPCB",HSPCB,CPCB,28.4275,77.1465,12236251,delhi_ncr,gurugram,,2020-03-30T16:00:00Z
+10908,"Sector 11, Faridabad - HSPCB",HSPCB,CPCB,28.376058,77.315741,12236245,delhi_ncr,faridabad,,2020-03-11T08:30:00Z
+10919,"Sanjay Nagar, Ghaziabad - UPPCB",UPPCB,CPCB,28.685382,77.453839,12235770,delhi_ncr,ghaziabad,,2019-04-27T12:00:00Z
+10920,"New Industrial Town, Faridabad - HSPCB",HSPCB,CPCB,28.39072,77.30059,12236227,delhi_ncr,faridabad,,2025-02-18T20:15:00Z
+10921,"NISE Gwal Pahari, Gurugram - IMD",IMD,CPCB,28.422681,77.148944,12235707,delhi_ncr,gurugram,,2018-11-16T09:00:00Z
+11603,"Chandni Chowk, Delhi - IITM",IITM,CPCB,28.656756,77.227234,12236361,delhi_ncr,delhi_central,,2020-11-13T12:15:00Z
+6148686,"IIT Delhi, Delhi - IITM",IITM,N/A,28.54246,77.191651,14769474,delhi_ncr,delhi_south,,2025-12-01T11:30:00Z
+6254594,"Talkatora Garden, Delhi - DPCC",DPCC,N/A,28.62181,77.1944633,15554208,delhi_ncr,delhi_central,,2026-02-27T15:30:00Z
+6254663,"JNU, Delhi - DPCC",DPCC,N/A,28.540721,77.168544,15554704,delhi_ncr,delhi_south,,2026-02-27T17:00:00Z
+6254664,"NSUT Jaffarpur, Delhi - DPCC",DPCC,N/A,28.594004,76.909423,15554716,delhi_ncr,delhi_west,,2026-02-27T17:00:00Z
+6254665,"Commonwealth Sports Complex, Delhi - DPCC",DPCC,N/A,28.615828,77.271992,15554728,delhi_ncr,delhi_central,,2026-02-27T17:00:00Z
+6254666,"IGNOU_Maidan Garhi, Delhi - DPCC",DPCC,N/A,28.493624,77.201159,15554740,delhi_ncr,delhi_south,,2026-02-27T16:45:00Z
+6257818,"Cantonment Area, Delhi - DPCC",DPCC,N/A,28.594169,77.1251,15578291,delhi_ncr,delhi_west,,2026-03-02T13:00:00Z
+6299494,"Prashant Garden, Khora - UPPCB",UPPCB,N/A,28.61119,77.34206,15888918,delhi_ncr,ghaziabad,,2026-04-07T12:45:00Z
+6299603,"SRM University, Modinagar - UPPCB",UPPCB,N/A,28.798171,77.540243,15889770,delhi_ncr,ghaziabad,,2026-04-07T15:30:00Z
+6299678,"Ved Vihar-Loni, Ghaziabad - UPPCB",UPPCB,N/A,28.739153,77.273668,15890341,delhi_ncr,ghaziabad,,2026-04-07T17:00:00Z
+6311324,"Govindpuram, Ghaziabad - UPPCB",UPPCB,N/A,28.694528,77.494705,15978433,delhi_ncr,ghaziabad,,2026-04-17T13:15:00Z
+6458520,"Wave City, Ghaziabad - UPPCB",UPPCB,N/A,28.646675,77.489049,17025422,delhi_ncr,ghaziabad,,2026-07-24T10:30:00Z

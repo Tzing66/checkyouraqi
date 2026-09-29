@@ -1,0 +1,10 @@
+zone_id,zone_name,city_id
+delhi_central,Central Delhi,delhi_ncr
+delhi_north,North Delhi,delhi_ncr
+delhi_east,East Delhi,delhi_ncr
+delhi_south,South Delhi,delhi_ncr
+delhi_west,West Delhi,delhi_ncr
+noida,Noida,delhi_ncr
+gurugram,Gurugram,delhi_ncr
+ghaziabad,Ghaziabad,delhi_ncr
+faridabad,Faridabad,delhi_ncr

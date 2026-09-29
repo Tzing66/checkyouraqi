@@ -32,3 +32,6 @@ infra/terraform/backend.hcl
 .terraform.lock.hcl.bak
 config/zones.draft.yaml
 dbt/logs/
+dbt/.user.yml
+dbt/dbt_packages/
+dbt/package-lock.yml.bak

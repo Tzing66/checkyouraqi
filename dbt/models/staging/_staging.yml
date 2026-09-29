@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: stg_openaq__pm25_hourly
+    description: PM2.5 per station and OpenAQ hour (history + live), latest fetch wins.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [location_id, hour_start_utc]}
+    columns:
+      - name: location_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('seed_stations'), field: location_id}}
+      - name: hour_start_utc
+        data_tests: [not_null, ist_aligned_hour]
+      - name: is_out_of_range
+        data_tests: [not_null]
+      - name: source
+        data_tests:
+          - accepted_values: {arguments: {values: [history, hourly]}}
+
+  - name: stg_openaq__latest_readings
+    description: Latest reading per live sensor with first/last time our pipeline saw it.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [sensor_id, reading_utc]}
+    columns:
+      - name: parameter
+        data_tests: [not_null]
+
+  - name: stg_openmeteo__weather_forecasts
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [point_id, issued_at, valid_time_utc]}
+    columns:
+      - name: point_id
+        data_tests:
+          - relationships: {arguments: {to: ref('seed_weather_points'), field: point_id}}
+
+  - name: stg_openmeteo__air_quality_forecasts
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [point_id, issued_at, valid_time_utc]}
+
+  - name: stg_openmeteo__weather_actuals
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [point_id, time_utc]}
+    columns:
+      - name: point_id
+        data_tests:
+          - relationships: {arguments: {to: ref('seed_weather_points'), field: point_id}}
+
+  - name: stg_openmeteo__weather_previous_runs
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [point_id, time_utc, days_before]}
+    columns:
+      - name: days_before
+        data_tests:
+          - accepted_values: {arguments: {values: [1, 2, 3], quote: false}}
+
+  - name: stg_openmeteo__air_quality
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [point_id, time_utc]}
+
+  - name: stg_firms__fire_points
+    data_tests: [single_firms_product_per_day]
+    columns:
+      - name: sensor
+        data_tests:
+          - accepted_values: {arguments: {values: [VIIRS_SNPP, VIIRS_NOAA20]}}
+      - name: confidence
+        data_tests:
+          - accepted_values: {arguments: {values: [l, n, h]}}

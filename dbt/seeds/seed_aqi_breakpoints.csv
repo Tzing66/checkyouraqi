@@ -1,0 +1,7 @@
+category,category_order,pm25_low,pm25_high,aqi_low,aqi_high
+good,1,0,30,0,50
+satisfactory,2,31,60,51,100
+moderately_polluted,3,61,90,101,200
+poor,4,91,120,201,300
+very_poor,5,121,250,301,400
+severe,6,251,,401,500
