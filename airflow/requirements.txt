@@ -1,3 +1,4 @@
 # Extra runtime deps for the ingestion package, on top of the Airflow image
 # (which already ships httpx, pydantic, boto3, PyYAML and python-dotenv).
 pydantic-settings>=2.3
+evidently==0.7.23
