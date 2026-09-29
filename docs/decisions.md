@@ -2,6 +2,17 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-29 — Phase 1 accepted early; OpenAQ CPCB outage investigated
+- **Phase 1 accepted at ~18h of the 24h run (owner decision).** Evidence: 47/47 runs succeeded with no retries; no gaps in either hourly DAG (openaq 15:05→09:05, weather 14:10→09:10 UTC); both daily DAGs' first scheduled runs on time (02:00, 03:30 UTC); clean UTC midnight rollover in all four hourly outputs; scheduler memory flat at ~530/700 MiB; 0 task warnings. One unexplained dag-processor self-restart (2026-09-28 16:37 UTC, not OOM, no error logged, recovered in 5 s, no runs affected); watch for repeats. **Not verifiable:** live PM2.5 flowing hourly, because of the outage below. Re-check once OpenAQ recovers.
+- **DAGs paused and the Airflow stack stopped** (volumes kept) while Phase 2 is built.
+- **The OpenAQ "outage" is OpenAQ's CPCB ingestion, not us:**
+  - All 498 CPCB locations in India (plus 46 CPCB-sourced "N/A" ones) stopped at exactly 2026-09-24 17:30 UTC. That's before our key existed (2026-09-28). The key is healthy: HTTP 200, 59/60 remaining, never a 429, and the same key gets fresh AirGradient data in Delhi.
+  - AirGradient, Clarity, and AirNow Mumbai/Chennai are current. CPCB's own portal and CAAQMS RSS feed are live (updated 2026-09-29 15:00 IST, includes Anand Vihar).
+  - Likely an OpenAQ regression around the fix for openaq/openaq-ingestor#23 (gas ingestion broken 20–25 Sep, fixed 25 Sep). #24 doesn't mention CPCB. No CPCB-specific issue is filed.
+- **Correction:** the US Embassy Delhi monitor (AirNow, 8118) stopped at 2026-09-24 **10:30** UTC, 7h before CPCB. It's an unrelated single-station outage. The earlier note that it stopped "at the same moment" compared dates only.
+- **Deferred by owner (revisit later):** (1) report the CPCB stop to OpenAQ (the owner files it; Claude can draft); (2) add CPCB's CAAQMS RSS feed (`airquality.cpcb.gov.in/caaqms/rss_feed`) as a backup live source. It's a snapshot with no history, and its PM values look like 24h min/max/avg rather than hourly concentrations, so verify before use. Station names differ slightly from OpenAQ, so match on coordinates.
+- **Compose project named `checkyouraqi`:** the folder name `airflow` collided with another local project (data-migration-project/airflow) under Docker's default project name, so `docker compose down --remove-orphans` could have removed that project's containers.
+
 ## 2026-09-28 — History is 19 months, not 2 years; CAMS added (owner decision)
 - **OpenAQ PM2.5 for Delhi NCR stations only exists from ~mid-Feb 2025**, in both the API and the public S3 archive (`openaq-data-archive`, which has 2017, 2018, 2025 and 2026 for Anand Vihar). OpenAQ appears to have lost the CPCB feed between ~2018 and early 2025. Newer stations start later (JNU 2026-02, Wave City 2026-07). So training history is **~19 months with one full stubble/Diwali season (Oct–Nov 2025)**. The Oct 2026 season will come in through live ingestion.
 - **Owner chose: use the 19 months, plus CAMS** (Open-Meteo air-quality API, free, history from ~2022-09). Alternatives rejected: OpenAQ only (no regional background signal), or finding older CPCB data elsewhere (manual, licensing unclear, different IDs).
@@ -55,7 +66,7 @@ Decisions not covered by the plan, newest first. Format: date — decision — w
 - **Co-located stations (< 100 m) are flagged** in `stations.yaml` (`colocated_with`) and excluded from zone/city medians. Found: Pusa DPCC 6356 at the same spot as Pusa IMD 5404.
 - **Zones:** NCR cities are assigned by a name keyword. Delhi is split by distance from Connaught Place (≤ 6 km = Central) and then by N/E/S/W bearing. **Bahadurgarh** (Haryana) gets its own zone. `zones.yaml` is only written if missing; later runs write `zones.draft.yaml` so hand edits are never overwritten.
 - **Bronze:** each run lands the raw `/locations` and `/latest` payloads in `bronze/openaq/locations/dt=YYYY-MM-DD/`.
-- **The outage is wider than CPCB:** the US Embassy (AirNow) monitor also went silent at 2026-09-24 17:30 UTC, so this is an OpenAQ ingestion issue for India.
+- ~~The outage is wider than CPCB: the US Embassy monitor also went silent at the same time.~~ _Corrected 2026-09-29: the embassy monitor stopped 7h earlier, unrelated. See the entry above._
 
 ## 2026-09-28 — OpenAQ client
 - **Pacing:** at least 1.1 s between requests (the limit is ~60/min). The client pauses until the window resets when `x-ratelimit-remaining` ≤ 2. On a 429 it sleeps for `max(x-ratelimit-reset, exponential backoff)`. 5xx and transport errors get exponential backoff, up to 5 tries.
