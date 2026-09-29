@@ -91,3 +91,32 @@ models:
       - name: weather_days_before
         data_tests:
           - accepted_values: {arguments: {values: [2, 3, 4], quote: false}}
+
+  - name: fct_features_live
+    description: >
+      Latest-hour features for every station and horizon (same logic as fct_features_hourly;
+      stale PM2.5 inputs carried forward and labelled). Input to the predict DAG.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [location_id, horizon_h]}
+    columns:
+      - name: is_stale_input
+        data_tests: [not_null]
+      - name: pm25_lag0
+        description: Last known PM2.5 (carried forward over gaps).
+        data_tests: [not_null]
+
+  - name: fct_forecasts
+    description: Every live forecast (station x issue time x horizon) with staleness label.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [location_id, issue_time_utc, horizon_h]}
+    columns:
+      - name: pm25_pred
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {arguments: {min_value: 0, max_value: 1500}}
+      - name: is_stale_input
+        data_tests: [not_null]
+  - name: fct_forecast_accuracy
+    description: Forecasts vs actuals once the target hour has passed (empty during outages).

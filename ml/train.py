@@ -198,6 +198,36 @@ def write_markdown(
     RESULTS_MD.write_text("\n".join(lines))
 
 
+RESULTS_JSON = MODEL_DIR / "results.json"
+
+
+def write_results_json(
+    results: list[dict], source: str, n_rows: int, transform: str, run_id: str
+) -> None:
+    """Machine-readable results; published with the model as public/model_card.json."""
+    card = {
+        "mlflow_run_id": run_id,
+        "trained_rows": n_rows,
+        "data_source": source,
+        "target_transform": transform,
+        "validation": "walk-forward monthly folds, expanding window, labels purged at boundary",
+        "horizons": {
+            str(r["horizon"]): {
+                "model": r["model"],
+                "baselines": r["baselines"],
+                "skill": r["skill"],
+                "per_month": r["per_fold"],
+                "top_features": (r["importance"] / r["importance"].sum())
+                .head(10)
+                .round(4)
+                .to_dict(),
+            }
+            for r in results
+        },
+    }
+    RESULTS_JSON.write_text(json.dumps(card, indent=1, default=str))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train PM2.5 forecasters (24/48/72h).")
     parser.add_argument("--refresh", action="store_true", help="re-export features from Athena")
@@ -270,6 +300,9 @@ def main() -> None:
         peak = peak_rss_mb()
         mlflow.log_metric("peak_rss_mb", peak)
         write_markdown(results, df.attrs.get("source", ""), len(df), peak, args.target)
+        write_results_json(
+            results, df.attrs.get("source", ""), len(df), args.target, parent.info.run_id
+        )
         mlflow.log_artifact(str(RESULTS_MD))
         log.info("MLflow run %s", parent.info.run_id)
     log.info(

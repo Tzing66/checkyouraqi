@@ -116,6 +116,13 @@ array<array<struct<
         "fetched_at string, forecast_issued_at string, logical_hour string, " ~ points ~ ",
          responses " ~ _openmeteo_response(aq),
         _hourly_projection('2026-09-01')),
+    'predictions': _bronze_json('predictions', 'predictions',
+        "predicted_at string,
+         predictions array<struct<
+             location_id: bigint, zone_id: string, horizon_h: int, issue_time_utc: string,
+             target_hour_start_utc: string, pm25_pred: double, input_age_hours: int,
+             is_stale_input: boolean, last_valid_hour_utc: string, model_version: string>>",
+        _hourly_projection('2026-09-29')),
     'openmeteo_actuals': _bronze_json('openmeteo_actuals', 'openmeteo/actuals',
         "fetched_at string, start_date string, end_date string, " ~ points ~ ",
          responses " ~ _openmeteo_response(weather),

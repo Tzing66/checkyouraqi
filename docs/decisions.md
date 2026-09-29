@@ -2,6 +2,16 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-29 — Phase 4 decisions (owner)
+1. **Forecast even when station data is stale (option b):** forecasts are produced from each station's last known values and labelled with the input age (`input_age_hours`, `is_stale_input`). Surfaces show a warning instead of hiding the forecast.
+2. **Live weather features = the same previous-runs forecasts as training** (`days_before = h/24 + 1`, fetched live from Open-Meteo's previous-runs API), so train and serve inputs match.
+3. **Live features come from the same dbt logic as training** (a "latest hour, every station" slice). If recent PM2.5 is missing, the lag/rolling/last-value features **carry the last known readings forward** (LOCF). Training keeps gaps as missing, which is what the model learned.
+4. **Production model = `s3://<bucket>/models/production/`** with a manifest, promoted manually for now. The automatic promotion rule comes in Phase 5.
+5. **Dashboard pages:** Overview (map + zone/city + outage banner), Station (72h forecast, history, forecast vs actual), Model health (backtest, baselines, drift), About (attribution, method, caveats). The owner may revise.
+6. **Nearest-station lookup:** both a map click / coordinates and a locality search via OpenStreetMap Nominatim (rate-limited, attribution required).
+7. **Accuracy:** show the Phase 3 backtest as historical accuracy now. Live forecast-vs-actual switches on automatically once PM2.5 flows again.
+8. **Drift:** a daily Evidently static HTML report in `reports/`, linked from the Model health page.
+
 ## 2026-09-29 — Phase 3 modelling
 - **Setup:**
   - Prediction ("issue") time = end of an OpenAQ hour. Target = hourly PM2.5 in the OpenAQ hour starting `h` after the issue hour (h = 24/48/72).

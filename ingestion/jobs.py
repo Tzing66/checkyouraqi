@@ -20,6 +20,7 @@ from ingestion.openmeteo.extract import (
     extract_air_quality,
     extract_air_quality_forecast,
     extract_forecast,
+    extract_previous_runs,
 )
 from ingestion.openmeteo.points import zone_points
 from ingestion.settings import Settings
@@ -29,6 +30,9 @@ log = logging.getLogger(__name__)
 
 ACTUALS_LOOKBACK_DAYS = 7  # ERA5 lags ~5 days, so keep re-fetching the last week
 FIRES_DAYS_BACK = (1, 2)  # NRT for a day keeps filling in for a while after it ends
+# Live previous-runs window: the (h/24 + 1)-days-old forecasts for target hours up to 72h ahead.
+# One file per day (same key all day), so the latest fetch of the day wins.
+PREVIOUS_RUNS_LIVE_DAYS = (-1, 4)
 
 
 def _writer(settings: Settings) -> S3Writer:
@@ -50,13 +54,17 @@ def openaq_hourly(logical_time: datetime) -> dict[str, int]:
 
 
 def weather_forecast_hourly(logical_time: datetime) -> list[str]:
-    """Weather forecast + CAMS air-quality forecast, both stored with their issue time."""
+    """Weather + CAMS forecasts (stored with their issue time), and the previous-runs forecasts
+    for the next days' target hours, which live prediction uses exactly as training did."""
     s = Settings()
     writer, points, hour = _writer(s), zone_points(), _hour(logical_time)
+    today = hour.date()
+    first, last = (today + timedelta(days=d) for d in PREVIOUS_RUNS_LIVE_DAYS)
     with OpenMeteoClient() as client:
         return [
             extract_forecast(client, writer, points, logical_hour=hour),
             extract_air_quality_forecast(client, writer, points, logical_hour=hour),
+            extract_previous_runs(client, writer, points, first, last),
         ]
 
 

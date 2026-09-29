@@ -42,6 +42,8 @@ sources:
         description: Historical forecasts as issued 1/2/3 days before each hour (leak-free features).
       - name: openmeteo_air_quality
         description: CAMS PM2.5/PM10 history (best estimate per hour; only usable lagged).
+      - name: predictions
+        description: Live forecasts written by the predict DAG (ml/predict.py), one file per issue hour.
       - name: firms_fires
         description: VIIRS fire detections, one CSV per day and source (SNPP/NOAA20 x SP/NRT).
         config:

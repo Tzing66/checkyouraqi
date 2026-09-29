@@ -77,6 +77,18 @@ DATASETS: tuple[Dataset, ...] = (
     ),
     Dataset("city_daily", "aqi_gold.agg_city_daily", "City daily, full history"),
     Dataset(
+        "forecasts_latest",
+        "aqi_gold.fct_forecasts",
+        "Latest 24/48/72h forecast per station, with staleness label",
+        "where issue_time_utc = (select max(issue_time_utc) from aqi_gold.fct_forecasts)",
+    ),
+    Dataset(
+        "forecast_accuracy_recent",
+        "aqi_gold.fct_forecast_accuracy",
+        "Forecast vs actual, last 30 days (empty while the source is down)",
+        f"where target_hour_start_utc >= current_timestamp - interval '{RECENT_DAYS}' day",
+    ),
+    Dataset(
         "fires_daily",
         "aqi_silver.int_fires_upwind_daily",
         "Fire counts by sector/band, last 120 days",
@@ -161,6 +173,9 @@ def export(
             "glob": f"s3://{bucket}/{prefix}*",
             "description": ds.description,
         }
+
+    # Static files published elsewhere (the model card comes with each model promotion).
+    manifest["files"] = {"model_card": f"s3://{bucket}/public/model_card.json"}
 
     # Publish atomically: readers switch to the new run only once everything is written.
     s3.put_object(
