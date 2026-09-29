@@ -10,6 +10,21 @@ Decisions not covered by the plan, newest first. Format: date — decision — w
 - **Drift verdict needs ≥ 24 served hours** (see Phase 4 monitor).
 - **Performance** (AppTest, live S3 snapshot): cold Overview load 1.95 s after parallelising fetches (was 2.9 s sequential), warm 0.07–0.4 s on every page; criterion < 3 s. No exceptions on any page.
 - **Lint:** E501 is relaxed for `tests/**` only (fixture data).
+- **Visual review (rendered with headless Chrome, per the dataviz skill's "render and look" step) found and fixed:**
+  - CARTO basemaps now return an "API KEY REQUIRED" watermark tile → switched to OpenStreetMap standard tiles (free with attribution).
+  - Chart text defaulted to black (invisible on the dark theme) → text uses the palette's text tokens per theme.
+  - Legends overlapped data → moved above the plot.
+  - End labels collided → nudged apart when series end close together.
+  - AQI boundary labels were illegible in-plot → the y-axis ticks now *are* the boundaries ("60 · Satisfactory"). Layers must share one y-encoding object, because Vega-Lite merges per-layer axes and a differing one mangles or removes the axis.
+  - Truncated feature names → wider labels.
+  - "None" in the skill column → "—".
+  - Forecast cards show the hour window ("15:00–16:00 IST").
+- **Serving in Airflow:**
+  - The image adds `libgomp1` (LightGBM's OpenMP runtime) and `lightgbm` / `evidently`. `ml/` is mounted read-only, and the model cache goes to `/tmp` (`CHECKYOURAQI_MODEL_CACHE`).
+  - predict and monitor DAGs pass. Measured scheduler peaks: `dags test` predict 899/900 MiB (worst case: all tasks in one process); a **real triggered run 760/900 MiB** (separate task processes); monitor 682 MiB.
+  - The scheduler cap is the constraint to revisit on the t3.small in Phase 5.
+- **API (FastAPI):** `/health`, `/stations`, `/stations/nearest`, `/forecast/{id}`. Every station and forecast carries freshness, and forecasts carry `is_stale_input` / `input_age_hours`. Warm responses < 30 ms; first call ~0.8 s (snapshot load).
+
 
 ## 2026-09-29 — Phase 4 decisions (owner)
 1. **Forecast even when station data is stale (option b):** forecasts are produced from each station's last known values and labelled with the input age (`input_age_hours`, `is_stale_input`). Surfaces show a warning instead of hiding the forecast.

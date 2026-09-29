@@ -17,6 +17,7 @@ x-airflow-common: &airflow-common
   env_file: ../.env
   environment: &airflow-common-env
     PYTHONPATH: /opt/airflow/project
+    CHECKYOURAQI_MODEL_CACHE: /tmp/checkyouraqi/models
     AWS_CONFIG_FILE: /opt/airflow/aws/config
     AWS_SHARED_CREDENTIALS_FILE: /opt/airflow/aws/credentials
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -36,6 +37,7 @@ x-airflow-common: &airflow-common
     - ../ingestion:/opt/airflow/project/ingestion:ro
     - ../config:/opt/airflow/project/config:ro
     - ../lakehouse:/opt/airflow/project/lakehouse:ro
+    - ../ml:/opt/airflow/project/ml:ro
     - ../dbt:/opt/airflow/project/dbt:ro
     # Local only. On EC2 (Phase 5) the instance role replaces this mount.
     - ~/.aws:/opt/airflow/aws:ro

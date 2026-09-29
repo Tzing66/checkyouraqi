@@ -17,8 +17,8 @@ zones, with PM2.5 forecasts 24, 48 and 72 hours ahead.
 - **Weather and CAMS air-quality model:** [Open-Meteo](https://open-meteo.com) (CC BY 4.0),
   including ECMWF/Copernicus data.
 - **Fires:** NASA FIRMS VIIRS active-fire detections (NASA LANCE / FIRMS).
-- **Map tiles and locality search:** © OpenStreetMap contributors, © CARTO; search by
-  Nominatim.
+- **Map tiles and locality search:** © OpenStreetMap contributors (tile.openstreetmap.org
+  and Nominatim).
 
 ### How it works
 - Hourly ingestion into an S3 lakehouse; dbt on Athena cleans, grids and aggregates it.

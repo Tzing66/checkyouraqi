@@ -2,3 +2,4 @@
 # (which already ships httpx, pydantic, boto3, PyYAML and python-dotenv).
 pydantic-settings>=2.3
 evidently==0.7.23
+lightgbm==4.7.0

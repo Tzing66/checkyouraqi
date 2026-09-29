@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,7 +28,8 @@ from ml.features import HORIZONS
 PREFIX = "models/production"
 MANIFEST_KEY = f"{PREFIX}/manifest.json"
 LOCAL_MODELS = ROOT / "data" / "ml" / "models"
-CACHE = ROOT / "data" / "ml" / "production"
+# Local model cache; overridable because the project dir is read-only inside Airflow.
+CACHE = Path(os.environ.get("CHECKYOURAQI_MODEL_CACHE", ROOT / "data" / "ml" / "production"))
 
 
 @dataclass(frozen=True)
@@ -92,7 +94,10 @@ def promote(
     return manifest
 
 
-def load_production(s3: Any, bucket: str, *, cache: Path = CACHE) -> dict[int, ProductionModel]:
+def load_production(
+    s3: Any, bucket: str, *, cache: Path | None = None
+) -> dict[int, ProductionModel]:
+    cache = cache or CACHE
     manifest = json.loads(s3.get_object(Bucket=bucket, Key=MANIFEST_KEY)["Body"].read())
     version = manifest["version"]
     out = {}

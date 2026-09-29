@@ -19,6 +19,14 @@ from dashboard.ui import (
     swatch,
 )
 
+
+def hour_window(start_utc) -> str:
+    """'30 Sep, 15:00–16:00 IST': the forecast is for a whole OpenAQ hour."""
+    start = ist(start_utc)
+    end = ist(pd.Timestamp(start_utc) + pd.Timedelta(hours=1)).split(", ")[1]
+    return start.replace(" IST", f"–{end}")
+
+
 snap = get_snapshot()
 stations = get_station_overview(snap, str(snap.exported_at))
 if stations.empty:
@@ -76,7 +84,8 @@ else:
     for col, r in zip(cols, fc.itertuples(index=False), strict=True):
         with col:
             st.metric(
-                f"In {r.horizon_h}h · {ist(r.target_hour_start_utc)}", f"{r.pm25_pred:.0f} µg/m³"
+                f"In {r.horizon_h}h · {hour_window(r.target_hour_start_utc)}",
+                f"{r.pm25_pred:.0f} µg/m³",
             )
             st.markdown(
                 swatch(category_of(r.pm25_pred)) + " <small>(hourly, indicative)</small>",
@@ -105,7 +114,7 @@ if hist.dropna(subset=["pm25"]).empty:
 else:
     st.altair_chart(history_chart(hist, theme_mode()), use_container_width=True)
     st.caption(
-        "Dotted lines mark India AQI category boundaries (the official category uses "
+        "Y-axis ticks and dotted lines mark India AQI category boundaries (official category uses "
         "the 24h average). Gaps are hours with missing or invalid readings."
     )
     with st.expander("Table view"):

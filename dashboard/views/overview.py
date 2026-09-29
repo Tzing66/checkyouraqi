@@ -9,7 +9,7 @@ from streamlit_folium import st_folium
 
 from dashboard.data import zone_summary
 from dashboard.geo import geocode, nearest_stations
-from dashboard.state import feed_banner, footer, get_snapshot, get_station_overview, theme_mode
+from dashboard.state import feed_banner, footer, get_snapshot, get_station_overview
 from dashboard.ui import (
     AQI,
     age_text,
@@ -62,8 +62,10 @@ left, right = st.columns([3, 2], gap="large")
 
 with left:
     st.subheader("Stations")
-    tiles = "cartodbdark_matter" if theme_mode() == "dark" else "cartodbpositron"
-    m = folium.Map(location=[28.61, 77.21], zoom_start=10, tiles=tiles, control_scale=True)
+    # OpenStreetMap standard tiles (free with attribution; CARTO basemaps now need a key).
+    m = folium.Map(
+        location=[28.61, 77.21], zoom_start=10, tiles="OpenStreetMap", control_scale=True
+    )
     for r in stations.itertuples(index=False):
         state = station_state(r.last_pm25_reading_utc)
         stale = state.value not in ("live", "delayed")
