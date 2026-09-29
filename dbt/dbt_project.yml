@@ -20,6 +20,15 @@ vars:
   # Valid PM2.5 range (plan §6); outside it values are flagged and excluded from training.
   pm25_min: 0
   pm25_max: 1000
+  # An OpenAQ hour built from < this % of its expected 15-min readings is flagged low-coverage.
+  min_hour_coverage_pct: 50
+  # Same PM2.5 value this many hours running = stuck sensor.
+  flatline_hours: 6
+  # CPCB: a 24h average needs at least 16 valid hours.
+  min_hours_for_24h_avg: 16
+  # Delhi NCR reference point for fire distance/bearing (Connaught Place).
+  city_center_lat: 28.6315
+  city_center_lon: 77.2167
 
 models:
   checkyouraqi:

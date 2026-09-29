@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: int_station_hourly
+    description: >
+      Complete hourly grid per station (first reading to now), gaps flagged not filled.
+      `pm25` is only set when `is_valid`; `pm25_raw` keeps the reported value.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [location_id, hour_start_utc]}
+    columns:
+      - name: hour_start_utc
+        data_tests: [not_null, ist_aligned_hour]
+      - name: is_valid
+        data_tests: [not_null]
+      - name: pm25
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1000}
+  - name: int_fire_points_located
+    columns:
+      - name: sector
+        data_tests:
+          - not_null
+          - accepted_values: {arguments: {values: [N, NE, E, SE, S, SW, W, NW]}}
+      - name: distance_km
+        data_tests:
+          - dbt_utils.accepted_range: {arguments: {min_value: 0, max_value: 700}}
+  - name: int_fires_upwind_daily
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [city_id, acq_date, sector, distance_band]}

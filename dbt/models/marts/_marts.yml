@@ -1,0 +1,78 @@
+version: 2
+
+models:
+  - name: dim_station
+    description: One row per station (stable OpenAQ location id), with history quality stats.
+    columns:
+      - name: location_id
+        data_tests: [unique, not_null]
+      - name: zone_id
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_zone'), field: zone_id}}
+  - name: dim_zone
+    columns:
+      - name: zone_id
+        data_tests: [unique, not_null]
+  - name: dim_city
+    columns:
+      - name: city_id
+        data_tests: [unique, not_null]
+  - name: dim_date
+    columns:
+      - name: date_ist
+        data_tests: [unique, not_null]
+
+  - name: fct_aqi_hourly
+    description: PM2.5 per station-hour with CPCB 24h average and India AQI category.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [location_id, hour_start_utc]}
+    columns:
+      - name: aqi_category
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [good, satisfactory, moderately_polluted, poor, very_poor, severe]
+      - name: pm25_24h
+        data_tests:
+          - dbt_utils.accepted_range: {arguments: {min_value: 0, max_value: 1000}}
+      - name: valid_hours_24h
+        data_tests:
+          - dbt_utils.accepted_range: {arguments: {min_value: 0, max_value: 24}}
+
+  - name: agg_zone_hourly
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [zone_id, hour_start_utc]}
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "stations_reporting <= stations_expected"}
+  - name: agg_city_hourly
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [city_id, hour_start_utc]}
+
+  - name: fct_station_status
+    description: Current freshness state per station (drives the stale-data badges).
+    columns:
+      - name: location_id
+        data_tests: [unique, not_null]
+      - name: status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [live, delayed, inactive, offline, no_data]}
+  - name: fct_feed_status
+    description: Hourly share of stations not live and the resulting source status.
+    columns:
+      - name: hour_start_utc
+        data_tests: [unique, not_null]
+      - name: feed_status
+        data_tests:
+          - accepted_values: {arguments: {values: [ok, degraded, outage]}}
+      - name: share_not_live
+        data_tests:
+          - dbt_utils.accepted_range: {arguments: {min_value: 0, max_value: 1}}
+  - name: agg_city_daily
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [city_id, date_ist]}
