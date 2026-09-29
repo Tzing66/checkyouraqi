@@ -1,0 +1,16 @@
+# No secrets here: bucket and AWS profile come from the environment (repo .env), via scripts/dbt.sh.
+checkyouraqi:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      region_name: ap-south-1
+      aws_profile_name: "{{ env_var('AWS_PROFILE', 'checkyouraqi-dev') }}"
+      work_group: checkyouraqi
+      database: awsdatacatalog
+      schema: aqi_silver
+      s3_staging_dir: "s3://{{ env_var('DATA_BUCKET') }}/athena-results/"
+      s3_data_dir: "s3://{{ env_var('DATA_BUCKET') }}/lake/"
+      s3_data_naming: schema_table
+      threads: 4
+      num_retries: 2

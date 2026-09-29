@@ -1,0 +1,36 @@
+name: checkyouraqi
+version: "0.1.0"
+profile: checkyouraqi
+config-version: 2
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+vars:
+  # Mirrors config/freshness.yaml (tests/test_config.py checks they match).
+  freshness_live_max_hours: 3
+  freshness_delayed_max_hours: 6
+  freshness_inactive_max_days: 7
+  feed_outage_min_share_not_live: 0.8
+  feed_degraded_min_share_not_live: 0.3
+  # Valid PM2.5 range (plan §6); outside it values are flagged and excluded from training.
+  pm25_min: 0
+  pm25_max: 1000
+
+models:
+  checkyouraqi:
+    +table_type: iceberg
+    staging:
+      +schema: aqi_silver
+    intermediate:
+      +schema: aqi_silver
+    marts:
+      +schema: aqi_gold
+
+seeds:
+  checkyouraqi:
+    +schema: aqi_silver
