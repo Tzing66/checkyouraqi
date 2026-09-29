@@ -12,6 +12,11 @@ dependencies = [
     "python-dotenv>=1.0",
     "boto3>=1.43.103",
     "duckdb>=1.5.6",
+    "lightgbm>=4.7.0",
+    "scikit-learn>=1.9.1",
+    "pandas>=3.0.6",
+    "pyarrow>=25.0.1",
+    "mlflow>=3.16.1",
 ]
 
 [dependency-groups]

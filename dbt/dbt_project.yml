@@ -28,6 +28,14 @@ vars:
   flatline_hours: 6
   # CPCB: a 24h average needs at least 16 valid hours.
   min_hours_for_24h_avg: 16
+  # --- Phase 3 features (see docs/decisions.md 2026-09-29 Phase 3) ---
+  forecast_horizons: [24, 48, 72]
+  # Training rows: one prediction time every N hours per station (memory budget).
+  feature_issue_every_hours: 3
+  # Weather model runs publish a few hours after initialisation.
+  weather_publish_lag_hours: 6
+  cams_lag_hours: 12
+  firms_publish_lag_hours: 3
   # Delhi NCR reference point for fire distance/bearing (Connaught Place).
   city_center_lat: 28.6315
   city_center_lon: 77.2167

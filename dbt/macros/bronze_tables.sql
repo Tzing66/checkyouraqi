@@ -83,7 +83,7 @@ array<array<struct<
 {% macro bronze_table_ddl() %}
   {%- set points = 'points array<struct<id: string, latitude: double, longitude: double>>' -%}
   {%- set weather = _weather_fields() ~ ', boundary_layer_height: array<double>' -%}
-  {%- set previous = _weather_fields(['_previous_day1', '_previous_day2', '_previous_day3']) -%}
+  {%- set previous = _weather_fields(['_previous_day1', '_previous_day2', '_previous_day3', '_previous_day4']) -%}
   {%- set aq = 'pm2_5: array<double>, pm10: array<double>' -%}
   {{ return({
     'openaq_pm25_hours': _bronze_json('openaq_pm25_hours', 'openaq/measurements',

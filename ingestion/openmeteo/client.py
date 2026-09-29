@@ -38,8 +38,10 @@ VARIABLES = (
     "surface_pressure",
 )
 # Verified 2026-09-28: previous runs exist for all of these back to 2024-09, but not for BLH.
+# Day 4 is needed so the 72h horizon can use a forecast that certainly existed at prediction time
+# (horizon h uses days_before = h/24 + 1; see docs/decisions.md 2026-09-29 Phase 3).
 PREVIOUS_RUN_VARIABLES = tuple(v for v in VARIABLES if v != "boundary_layer_height")
-PREVIOUS_RUN_DAYS = (1, 2, 3)
+PREVIOUS_RUN_DAYS = (1, 2, 3, 4)
 MAX_POINTS_PER_REQUEST = 50
 
 # CAMS (via Open-Meteo air quality), history from ~2022-09. Verified 2026-09-28: there are

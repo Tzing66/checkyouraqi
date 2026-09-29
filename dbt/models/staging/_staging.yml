@@ -58,7 +58,7 @@ models:
     columns:
       - name: days_before
         data_tests:
-          - accepted_values: {arguments: {values: [1, 2, 3], quote: false}}
+          - accepted_values: {arguments: {values: [1, 2, 3, 4], quote: false}}
 
   - name: stg_openmeteo__air_quality
     data_tests:

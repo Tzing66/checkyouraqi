@@ -94,17 +94,28 @@ def backfill_openaq(writer: Writer, s: Settings, start: date, end: date) -> None
         log.warning("openaq: %d station-months skipped (rerun to retry): %s", len(failed), failed)
 
 
-def backfill_weather(writer: Writer, s: Settings, start: date, end: date) -> None:
+def backfill_weather(
+    writer: Writer,
+    s: Settings,
+    start: date,
+    end: date,
+    *,
+    only: str | None = None,
+    force: bool = False,
+) -> None:
     points = zone_points()
     jobs = [
         ("actuals", extract_actuals),
         ("previous_runs", extract_previous_runs),
         ("air_quality", extract_air_quality),
     ]
+    if only:
+        jobs = [j for j in jobs if j[0] == only]
     with OpenMeteoClient() as client:
         for m_start, m_end in months(max(start, CONTEXT_START), end):
             for kind, fn in jobs:
-                if not is_recent(m_end, end) and writer.exists(range_key(kind, m_start, m_end)):
+                done = writer.exists(range_key(kind, m_start, m_end))
+                if done and not force and not is_recent(m_end, end):
                     continue
                 fn(client, writer, points, m_start, m_end)
                 # Open-Meteo weighs month x 9 points as many calls; pace well under 600/min.
@@ -143,6 +154,8 @@ def main() -> None:
     parser.add_argument("--start", type=date.fromisoformat, default=CONTEXT_START)
     parser.add_argument("--end", type=date.fromisoformat, default=yesterday)
     parser.add_argument("--local", action="store_true", help="write to data/ instead of S3")
+    parser.add_argument("--only", help="weather only: actuals | previous_runs | air_quality")
+    parser.add_argument("--force", action="store_true", help="weather only: re-fetch existing")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -153,7 +166,10 @@ def main() -> None:
         else S3Writer.from_profile(s.data_bucket, s.aws_profile, s.aws_region)
     )
     started = time.monotonic()
-    SOURCES[args.source](writer, s, args.start, args.end)
+    if args.source == "weather":
+        backfill_weather(writer, s, args.start, args.end, only=args.only, force=args.force)
+    else:
+        SOURCES[args.source](writer, s, args.start, args.end)
     log.info("%s backfill finished in %.1f min", args.source, (time.monotonic() - started) / 60)
 
 

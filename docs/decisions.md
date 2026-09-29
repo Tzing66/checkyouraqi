@@ -2,6 +2,36 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-09-29 — Phase 3 modelling
+- **Setup:**
+  - Prediction ("issue") time = end of an OpenAQ hour. Target = hourly PM2.5 in the OpenAQ hour starting `h` after the issue hour (h = 24/48/72).
+  - One global LightGBM per horizon (station and zone as categorical features), L1 objective, fixed seed and `deterministic=True`.
+  - Training rows are sampled every 3h per station: 647k rows with a valid target.
+- **Leakage (plan §7), enforced in two places:**
+  1. `fct_features_hourly` only joins data available at issue time. Its `audit_*` columns record each feature group's latest input time, and the dbt test `assert_features_no_leakage` fails on any later than issue time. The audits are 100% populated (so the test isn't vacuous). Minimum margins: weather forecasts 18.5h, CAMS 12.5h, fires and observed weather 0.5h.
+  2. Python tests check the model's feature list never includes the target, audit or timing columns, and that CV folds purge training rows whose labels cross into the test month.
+- **Weather-forecast rule:** horizon h uses the Open-Meteo previous run with `days_before = h/24 + 1`. Open-Meteo bins runs by lead-time day, and runs publish a few hours after init, so `days_before = h/24` could include forecasts not yet available at issue time. Needed `previous_day4` for 72h (added and backfilled).
+- **Baselines:**
+  - Persistence: last valid value.
+  - Seasonal naive: mean of the same hour over the previous 7 days. With whole-day horizons, "same hour yesterday" is identical to persistence.
+  - CAMS lagged 12h. The true CAMS-*forecast* baseline can't be scored historically and starts from live collection.
+- **Validation:** walk-forward monthly folds (expanding window, ≥ 6 months of training, 14 test months 2025-08 → 2026-09). Metrics are pooled over the test months.
+- **Results (`docs/model_results.md`, one command `python -m ml.train`, bit-for-bit reproducible):**
+  - 24h MAE 31.38 vs persistence 33.65 (**+6.7%**; the acceptance criterion is met) and vs seasonal naive 33.18 (+5.4%).
+  - 48h 33.84: +12.0% vs persistence, +0.7% vs seasonal naive.
+  - 72h 35.19: +12.0% vs persistence, **−1.0% vs seasonal naive**.
+  - Peak memory ~0.75–1.05 GB (< 1.5 GB budget). ~5 min on the Mac.
+- **Honest caveats:**
+  - The model loses to persistence in **Oct–Nov 2025**, the first pollution season. Its training data (Feb–Sep 2025) has never seen a season onset. From Dec 2025 it beats persistence every month (e.g. Feb–Sep 2026 by 10–25%).
+  - Bias is −15 to −18 µg/m³ (L1 → median, under-predicts peaks).
+  - Category accuracy is about the same as the baselines (~44–49%, indicative on hourly values).
+  - At 48–72h the model is only on par with seasonal naive.
+  - More seasons (Oct 2026 arrives via live ingestion) is the biggest expected improvement.
+- **Tried and rejected: `--target log_ratio`** (model log1p(target) − log1p(24h mean)) to let trees extrapolate to unseen levels. Overall it was slightly worse (24h MAE 31.76) and only trimmed the Oct–Nov errors a little, which shows the onset is driven by conditions the model hasn't seen, not by value-range extrapolation. It's kept as a CLI option. The model metadata records the transform so prediction decodes correctly.
+- **Deferred ideas (not done, to avoid tuning to one season):** blending with seasonal naive at 48–72h, quantile/Huber objectives for the bias, a separate season-regime feature, hyperparameter search.
+- **MLflow:** SQLite tracking at `data/ml/mlflow.db` (git-ignored, local), artifacts in `s3://<bucket>/mlflow/pm25-forecast/`. All three runs (initial, log_ratio, final) are recorded. Final models are also saved at `data/ml/models/lgbm_h{24,48,72}.txt` with a `.json` sidecar (transform, feature list).
+- **macOS:** LightGBM needs Homebrew `libomp` (installed).
+
 ## 2026-09-29 — Phase 2 lakehouse
 - **Layout:**
   - Bronze = 9 Athena external tables over the raw files (`aqi_bronze`), created by `dbt run-operation create_bronze_tables`, using the OpenX JSON SerDe and partition projection (no crawlers, no MSCK).

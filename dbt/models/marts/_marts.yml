@@ -76,3 +76,18 @@ models:
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments: {combination_of_columns: [city_id, date_ist]}
+
+  - name: fct_features_hourly
+    description: >
+      Model-ready features per station, prediction time and horizon, leak-free by construction
+      and by test (tests/assert_features_no_leakage.sql). Target is NULL when invalid.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [location_id, issue_time_utc, horizon_h]}
+    columns:
+      - name: horizon_h
+        data_tests:
+          - accepted_values: {arguments: {values: [24, 48, 72], quote: false}}
+      - name: weather_days_before
+        data_tests:
+          - accepted_values: {arguments: {values: [2, 3, 4], quote: false}}

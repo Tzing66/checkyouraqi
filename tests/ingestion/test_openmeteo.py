@@ -100,7 +100,8 @@ def test_previous_runs_asks_for_each_day_and_skips_blh(load_fixture, clock):
     assert "temperature_2m_previous_day1" in hourly
     assert "wind_speed_10m_previous_day3" in hourly
     assert not any(v.startswith("boundary_layer_height") for v in hourly)
-    assert len(hourly) == len(om.PREVIOUS_RUN_VARIABLES) * 3
+    assert "temperature_2m_previous_day4" in hourly
+    assert len(hourly) == len(om.PREVIOUS_RUN_VARIABLES) * 4
 
 
 def test_bad_request_surfaces_reason(load_fixture, clock):
