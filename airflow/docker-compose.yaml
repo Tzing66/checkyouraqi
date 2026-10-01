@@ -1,6 +1,6 @@
 # Airflow for CheckYourAQI: LocalExecutor + Postgres, no Celery/Redis (plan §4).
 # Image = official Airflow + pydantic-settings (see Dockerfile); our code is mounted read-only.
-# Sized for a t3.small (2 GB RAM + swap): no triggerer, low parallelism, per-service memory caps.
+# Sized for a t4g.small (2 GB RAM + 2 GB swap): no triggerer, low parallelism, per-service memory caps.
 #
 #   cd airflow && docker compose up -d --build   # UI at http://localhost:8080
 #

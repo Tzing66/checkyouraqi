@@ -15,3 +15,27 @@ from the first unchecked item in §12. Tick items off in the plan as they are do
 - The project isn't installed as a package (`[tool.uv] package = false`). Run scripts with
   `PYTHONPATH=. uv run python ...`. Pytest already sets `pythonpath`.
 - Docker Desktop doesn't start on its own: `open -a Docker` before `docker compose`.
+- Git: commits are authored as Tzing66 (global git config). After a pre-commit hook modifies files,
+  re-stage and commit again; never `--amend` a pushed commit.
+
+## Operating the project
+- **AWS profiles (account 242254325008 only):** `checkyouraqi` = admin, Terraform only;
+  `checkyouraqi-dev` = least-privilege pipeline user (set in `.env`). There is no default profile.
+  On EC2 the instance role is used; on GitHub Actions an OIDC role (main branch only).
+- **Terraform:** `infra/terraform` (state in S3, `backend.hcl` git-ignored). Always
+  `terraform plan -out=x.tfplan`, show it, get approval, then `terraform apply x.tfplan`.
+  The server is behind `var.ec2_enabled` (default false).
+- **dbt:** `scripts/dbt.sh <cmd>` (loads `.env`). Every model has exactly one cadence tag (a test
+  enforces it): `--selector hourly | daily | weekly | predict`. Bronze tables:
+  `scripts/dbt.sh run-operation create_bronze_tables`. Incremental history readers only read
+  recent bronze files, so use `--full-refresh` on them after a manual backfill of older periods.
+  Iceberg upkeep: `run-operation iceberg_maintenance` (daily in `dbt_daily`).
+- **Airflow DAGs:** ingest_openaq (+ CPCB snapshot), ingest_weather (hourly); ingest_weather_actuals,
+  ingest_fires, dbt_daily, monitor (daily); dbt_build (:25) and predict (:45) hourly.
+- **ML:** `python -m ml.train` (deterministic, writes `docs/model_results.md`); `python -m ml.promote`
+  (fair champion/challenger on data after production's cutoff); `python -m ml.registry show`.
+  Weekly training runs on GitHub Actions (`.github/workflows/train.yml`), not on the server.
+- **Serving:** dashboard `PYTHONPATH=. uv run streamlit run dashboard/app.py`; API
+  `PYTHONPATH=. uv run uvicorn api.app:app`. Both read only `public/` (S3 or `PUBLIC_BASE_URL`).
+- **Costs:** S3 *requests* dominate the S3 bill (not storage). Measure with
+  `scripts/s3_request_report.py` (S3 access logs, delivered with hours of delay).

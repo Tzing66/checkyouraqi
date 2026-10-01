@@ -1,6 +1,7 @@
 """Daily, after the daily ingestion (weather actuals 02:00, fires 03:30 UTC): refresh the DAILY
-models (ERA5, previous runs, CAMS history, fires, dimensions, seeds), then run the FULL test
-suite over every model, then export. Hourly runs skip tests to keep S3 requests down.
+models (ERA5, previous runs, CAMS history, fires, dimensions, seeds), run the FULL test suite
+over every model, export, and maintain the incremental Iceberg tables. Hourly runs skip tests to
+keep S3 requests down.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -51,7 +52,18 @@ def dbt_daily():
 
         return jobs.export_public()
 
+    # Compact files + expire old snapshots of the incremental Iceberg tables (hourly MERGEs
+    # otherwise pile up small files and metadata). Independent of the tests: a maintenance
+    # failure never blocks publishing.
+    maintenance = BashOperator(
+        task_id="iceberg_maintenance",
+        bash_command=f"{DBT} run-operation iceberg_maintenance --profiles-dir . --no-use-colors",
+        execution_timeout=timedelta(minutes=30),
+        retries=0,
+    )
+
     build >> test_all >> export_public()
+    build >> maintenance
 
 
 dbt_daily()

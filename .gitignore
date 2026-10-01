@@ -1,37 +1,39 @@
+# --- secrets: never in the repo -------------------------------------------------------------
 .env
+*accessKeys*.csv
+*credentials*.csv
+infra/terraform/backend.hcl
+
+# --- planning doc stays local ---------------------------------------------------------------
+docs/checkyouraqi-plan.md
+
+# --- python / tooling -----------------------------------------------------------------------
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 .DS_Store
-# terraform
+
+# --- terraform ------------------------------------------------------------------------------
 .terraform/
 *.tfstate
 *.tfstate.*
 *.tfvars
-# dbt
+*.tfplan
+
+# --- dbt ------------------------------------------------------------------------------------
 dbt/target/
 dbt/dbt_packages/
 dbt/logs/
-# airflow
-airflow/logs/
-# ml
-mlruns/
-*.db
-# local data
-data/
-
-# credentials never belong in the repo
-*accessKeys*.csv
-*credentials*.csv
-
-# planning doc stays local
-docs/checkyouraqi-plan.md
-infra/terraform/backend.hcl
-.terraform.lock.hcl.bak
-config/zones.draft.yaml
-dbt/logs/
 dbt/.user.yml
-dbt/dbt_packages/
-dbt/package-lock.yml.bak
+
+# --- airflow --------------------------------------------------------------------------------
+airflow/logs/
+
+# --- local data (bronze copies, ML cache, MLflow DB, screenshots) ---------------------------
+data/
+*.db
+
+# --- generated proposals --------------------------------------------------------------------
+config/zones.draft.yaml

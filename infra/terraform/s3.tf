@@ -34,6 +34,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
     }
   }
 
+  # Weekly training-table exports and drift reference samples: re-created on demand, so keep
+  # two weeks (the latest run is what matters; older copies only cost storage).
+  rule {
+    id     = "expire-ml-exports"
+    status = "Enabled"
+    filter {
+      prefix = "ml/"
+    }
+    expiration {
+      days = 14
+    }
+  }
+
   rule {
     id     = "abort-incomplete-uploads"
     status = "Enabled"

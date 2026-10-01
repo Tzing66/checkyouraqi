@@ -5,7 +5,7 @@
   days, "same hour yesterday" is identical to persistence, so the plan's intent needs a week).
 - cams_lagged: CAMS model PM2.5 for the zone, 12h before prediction time. Historical CAMS
   *forecasts* don't exist (Open-Meteo keeps none), so the true CAMS-forecast baseline is scored
-  from 2026-09-28 on, from forecasts we collect live (Phase 4).
+  from forecasts we collect live (since 2026-09-28).
 
 Each falls back to persistence where its own input is missing, so every row gets a prediction.
 """
