@@ -56,7 +56,7 @@ table = pd.DataFrame(rows)
 st.dataframe(
     table,
     hide_index=True,
-    use_container_width=True,
+    width="stretch",
     column_config={
         "MAE": st.column_config.NumberColumn(format="%.1f µg/m³"),
         "RMSE": st.column_config.NumberColumn(format="%.1f"),
@@ -75,14 +75,14 @@ st.caption(
 c1, c2 = st.columns([3, 2], gap="large")
 with c1:
     st.markdown("**MAE by test month**")
-    st.altair_chart(monthly_mae_chart(spec["per_month"], theme_mode()), use_container_width=True)
+    st.altair_chart(monthly_mae_chart(spec["per_month"], theme_mode()), width="stretch")
     st.caption(
         "The model struggles in Oct–Nov 2025: its first pollution season, with no earlier "
         "season in the training data (OpenAQ history starts Feb 2025)."
     )
 with c2:
     st.markdown("**What the model relies on** (share of gain)")
-    st.altair_chart(feature_bars(spec["top_features"], theme_mode()), use_container_width=True)
+    st.altair_chart(feature_bars(spec["top_features"], theme_mode()), width="stretch")
 
 # --- live monitoring ----------------------------------------------------------------------
 st.subheader("Live accuracy")

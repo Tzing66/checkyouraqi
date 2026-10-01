@@ -112,7 +112,7 @@ hist = hist[hist["location_id"] == choice].sort_values("hour_start_utc")
 if hist.dropna(subset=["pm25"]).empty:
     st.info("No valid readings in the last 30 days of data.")
 else:
-    st.altair_chart(history_chart(hist, theme_mode()), use_container_width=True)
+    st.altair_chart(history_chart(hist, theme_mode()), width="stretch")
     st.caption(
         "Y-axis ticks and dotted lines mark India AQI category boundaries (official category uses "
         "the 24h average). Gaps are hours with missing or invalid readings."
@@ -130,7 +130,7 @@ else:
                 }
             ),
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
 
 # --- forecast vs actual -------------------------------------------------------------------
@@ -145,7 +145,7 @@ if acc.empty:
 else:
     h = st.segmented_control("Horizon", [24, 48, 72], default=24, format_func=lambda x: f"{x}h")
     st.altair_chart(
-        forecast_vs_actual_chart(acc[acc["horizon_h"] == h], theme_mode()), use_container_width=True
+        forecast_vs_actual_chart(acc[acc["horizon_h"] == h], theme_mode()), width="stretch"
     )
 
 footer(snap)

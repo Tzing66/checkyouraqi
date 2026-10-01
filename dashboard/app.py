@@ -3,7 +3,16 @@
 PYTHONPATH=. uv run streamlit run dashboard/app.py
 """
 
+import sys
+from pathlib import Path
+
 import streamlit as st
+
+# `streamlit run dashboard/app.py` puts dashboard/ on sys.path, not the repo root, so the
+# project's packages (dashboard, ingestion) wouldn't import on Streamlit Cloud without this.
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 st.set_page_config(
     page_title="CheckYourAQI · Delhi NCR air quality",
