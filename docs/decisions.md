@@ -2,6 +2,18 @@
 
 Decisions not covered by the plan, newest first. Format: date — decision — why.
 
+## 2026-10-01 — Phase 5 decisions (owner) and prep
+- **OpenAQ status 2026-10-01:** OpenAQ backfilled the 24–29 Sep CPCB gap (Anand Vihar 21–24 h/day), then **stalled again from 2026-09-29 ~14:30 UTC**. That's two stalls in a week. Our pipeline was paused, so the backfilled hours need a `scripts/backfill.py openaq` rerun (the current month is always re-fetched).
+- **Phase 5 choices:**
+  - Server: **t4g.small** (ARM, 2 GB, ~USD 18/month incl. disk + public IPv4), the cheapest that fits once training is moved off it.
+  - **Weekly training on GitHub Actions** (free runners for public repos, OIDC role limited to `main`), not an Airflow train DAG.
+  - `public/` readable by a scoped bucket policy.
+  - No server access: no SSH and no open ports; bootstrapped by user-data; SSM kept only as an emergency door.
+  - Outage handling: **(a) deploy now, (b) CPCB backup later**.
+- **Budget:** the owner created `checkyouraqi-monthly`: USD 25/month on gross cost (credits excluded), alerts at 50% and 80% actual and 100% forecast. This replaces the plan's USD 1 budget, which would alert constantly once EC2 runs.
+- **CPCB capture starts now, integration later:** the CPCB CAAQMS feed keeps no history, so every uncaptured hour is lost. A raw hourly snapshot of the **full India feed** (owner choice, for future cities) goes to `bronze/cpcb/caaqms/dt=/hour=/feed.xml.gz`: ~43 KB/hour, ~0.36 GB/year, < USD 0.01/month. It's an independent task in `ingest_openaq`. Not used by any model until verified: its PM2.5 Min/Max/Avg look like AQI index points over an unknown window, and stations match by name only.
+- **S3 cost finding:** S3 cost so far is USD 0.22 vs Athena USD 0.02. That's S3 *requests* from Athena/dbt (LIST on hundreds of daily partitions per full-rebuild model, plus writes), not storage. Run hourly unchanged it would be ~USD 12–15/month. **It gets fixed before deployment:** models run only as often as their data changes (hourly/daily/weekly), and full rebuilds become incremental. Measured with S3 server access logs: a separate `checkyouraqi-logs-*` bucket, 7-day expiry, free delivery.
+
 ## 2026-09-29 — Dashboard (Phase 4)
 - **Streamlit + folium map + Altair charts, reading only `public/`** (manifest → Parquet, fetched in parallel; the manifest now lists each dataset's files and an `empty` flag, so it also works over plain HTTPS in Phase 5). Cached for 5 minutes.
 - **Pages:** Overview (city/zone tiles, station map, nearest-station lookup via locality search / coordinates / map click), Station (status, last reading, 24/48/72h forecast cards with a stale-input warning, 30-day history, forecast vs actual), Model health (backtest vs baselines, MAE by month, top features, live accuracy, drift), About (attribution, method, caveats).

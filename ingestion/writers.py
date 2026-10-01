@@ -32,6 +32,10 @@ class Writer(Protocol):
         """Whether key has already been written (lets long backfills resume)."""
         ...
 
+    def put_bytes(self, key: str, body: bytes, content_type: str) -> str:
+        """Write raw bytes at key (overwriting). Returns a URI."""
+        ...
+
 
 class LocalWriter:
     def __init__(self, base_dir: Path) -> None:
@@ -45,6 +49,9 @@ class LocalWriter:
 
     def exists(self, key: str) -> bool:
         return (self.base_dir / key).exists()
+
+    def put_bytes(self, key: str, body: bytes, content_type: str) -> str:
+        return self._write(key, body)
 
     def _write(self, key: str, body: bytes) -> str:
         path = self.base_dir / key
@@ -77,6 +84,9 @@ class S3Writer:
         # list_objects_v2 needs only s3:ListBucket, which the pipeline policy grants.
         resp = self._s3.list_objects_v2(Bucket=self.bucket, Prefix=key, MaxKeys=1)
         return any(o["Key"] == key for o in resp.get("Contents", []))
+
+    def put_bytes(self, key: str, body: bytes, content_type: str) -> str:
+        return self._put(key, body, content_type)
 
     def _put(self, key: str, body: bytes, content_type: str) -> str:
         self._s3.put_object(Bucket=self.bucket, Key=key, Body=body, ContentType=content_type)
