@@ -167,3 +167,24 @@ def test_every_swatch_carries_its_label_as_text():
     for key, (label, _) in AQI.items():
         assert label in swatch(key)
     assert aqi_label(None) in swatch(None)
+
+
+def test_http_source_retries_dropped_connections_but_not_404():
+    from dashboard.data import HttpSource
+
+    calls = {"n": 0}
+
+    def flaky(request):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise httpx.ConnectError("Connection reset by peer")
+        return httpx.Response(200, content=b"ok")
+
+    src = HttpSource("https://example", client=httpx.Client(transport=httpx.MockTransport(flaky)))
+    assert src.get("public/x") == b"ok" and calls["n"] == 2
+    missing = HttpSource(
+        "https://example",
+        client=httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(404))),
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        missing.get("public/missing")

@@ -34,15 +34,34 @@ class S3Source:
 
 
 class HttpSource:
-    def __init__(self, base_url: str) -> None:
-        self.base_url = base_url.rstrip("/")
+    """Public HTTPS reads. One pooled client (reused connections instead of a TLS handshake
+    per file) and a few retries on dropped connections, which parallel fetches can trigger."""
 
-    def get(self, key: str) -> bytes:
+    def __init__(self, base_url: str, *, client=None, retries: int = 3) -> None:
         import httpx
 
-        resp = httpx.get(f"{self.base_url}/{key}", timeout=30)
-        resp.raise_for_status()
-        return resp.content
+        self.base_url = base_url.rstrip("/")
+        self._http = client or httpx.Client(
+            timeout=30, limits=httpx.Limits(max_connections=8, max_keepalive_connections=8)
+        )
+        self._retries = retries
+
+    def get(self, key: str) -> bytes:
+        import time
+
+        import httpx
+
+        for attempt in range(self._retries):
+            try:
+                resp = self._http.get(f"{self.base_url}/{key}")
+                resp.raise_for_status()
+                return resp.content
+            except (httpx.TransportError, httpx.HTTPStatusError) as e:
+                status = getattr(getattr(e, "response", None), "status_code", 500)
+                if attempt == self._retries - 1 or status < 500 and status != 429:
+                    raise
+                time.sleep(0.5 * 2**attempt)
+        raise RuntimeError("unreachable")
 
 
 def default_source() -> Source:
