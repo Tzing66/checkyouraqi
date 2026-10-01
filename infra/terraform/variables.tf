@@ -64,3 +64,15 @@ variable "github_oidc_subject_prefix" {
   type        = string
   default     = "repo:Tzing66@164254504/checkyouraqi@1392845505"
 }
+
+variable "api_enabled" {
+  description = "Create the API's ECR repository (step 1 of the API deploy, see api.tf)."
+  type        = bool
+  default     = false
+}
+
+variable "api_image_tag" {
+  description = "Image tag in ECR to run on Lambda. Empty = no function yet (push an image first)."
+  type        = string
+  default     = ""
+}

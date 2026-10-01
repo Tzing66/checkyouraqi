@@ -24,7 +24,10 @@ from the first unchecked item in §12. Tick items off in the plan as they are do
   On EC2 the instance role is used; on GitHub Actions an OIDC role (main branch only).
 - **Terraform:** `infra/terraform` (state in S3, `backend.hcl` git-ignored). Always
   `terraform plan -out=x.tfplan`, show it, get approval, then `terraform apply x.tfplan`.
-  The server is behind `var.ec2_enabled` (default false).
+  What is switched on (`ec2_enabled`, `api_enabled`, `api_image_tag`) lives in the committed
+  `infra/terraform/deployed.auto.tfvars`, never in `-var` flags, so no plan silently destroys it.
+- **API:** FastAPI on Lambda (`api/Dockerfile`, `api/lambda_handler.py`). Deploy: commit, run
+  `scripts/deploy_api.sh`, set `api_image_tag` in `deployed.auto.tfvars`, plan, apply.
 - **dbt:** `scripts/dbt.sh <cmd>` (loads `.env`). Every model has exactly one cadence tag (a test
   enforces it): `--selector hourly | daily | weekly | predict`. Bronze tables:
   `scripts/dbt.sh run-operation create_bronze_tables`. Incremental history readers only read

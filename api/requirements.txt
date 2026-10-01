@@ -1,0 +1,10 @@
+# Lambda image dependencies: only what the API imports (versions match the tested uv.lock).
+fastapi==0.141.1
+mangum==0.22.0
+pandas==3.0.6
+pyarrow==25.0.1
+numpy==2.5.3
+httpx==0.28.1
+pydantic==2.13.5
+pydantic-settings==2.15.0
+pyyaml==6.0.3

@@ -37,3 +37,4 @@ data/
 
 # --- generated proposals --------------------------------------------------------------------
 config/zones.draft.yaml
+!infra/terraform/deployed.auto.tfvars
