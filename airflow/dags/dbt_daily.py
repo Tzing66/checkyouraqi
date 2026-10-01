@@ -1,7 +1,6 @@
-"""Hourly, after ingestion: refresh only the HOURLY models (dbt selector `hourly`), then export
-the public snapshots. Source freshness runs alongside: it goes red when a source is stale (e.g.
-OpenAQ's CPCB outage) without blocking the export, so the dashboard keeps showing last-known
-data. Daily inputs and the full test suite run in `dbt_daily` (S3 request cost, decisions.md).
+"""Daily, after the daily ingestion (weather actuals 02:00, fires 03:30 UTC): refresh the DAILY
+models (ERA5, previous runs, CAMS history, fires, dimensions, seeds), then run the FULL test
+suite over every model, then export. Hourly runs skip tests to keep S3 requests down.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -24,26 +23,25 @@ DBT = (
 
 
 @dag(
-    # Ingestion runs at :05 (OpenAQ) and :10 (weather); build after both have landed.
-    schedule="25 * * * *",
+    schedule="15 4 * * *",
     start_date=datetime(2026, 9, 29, tzinfo=UTC),
     catchup=False,
     max_active_runs=1,
-    dagrun_timeout=timedelta(minutes=45),
+    dagrun_timeout=timedelta(minutes=90),
     default_args=DEFAULT_ARGS,
-    tags=["lakehouse", "dbt"],
+    tags=["lakehouse", "dbt", "daily"],
 )
-def dbt_build():
+def dbt_daily():
     build = BashOperator(
-        task_id="dbt_build",
-        bash_command=f"{DBT} run --selector hourly --profiles-dir . --no-use-colors",
+        task_id="dbt_build_daily",
+        bash_command=f"{DBT} build --selector daily --profiles-dir . --no-use-colors",
         execution_timeout=timedelta(minutes=30),
     )
 
-    freshness = BashOperator(
-        task_id="source_freshness",
-        bash_command=f"{DBT} source freshness --profiles-dir . --no-use-colors",
-        execution_timeout=timedelta(minutes=10),
+    test_all = BashOperator(
+        task_id="dbt_test_all",
+        bash_command=f"{DBT} test --profiles-dir . --no-use-colors",
+        execution_timeout=timedelta(minutes=30),
         retries=0,
     )
 
@@ -53,7 +51,7 @@ def dbt_build():
 
         return jobs.export_public()
 
-    build >> [freshness, export_public()]
+    build >> test_all >> export_public()
 
 
-dbt_build()
+dbt_daily()

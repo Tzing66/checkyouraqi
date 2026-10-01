@@ -1,9 +1,20 @@
 {#
   Observed (ERA5) weather per zone point and hour. Files overlap (the daily job re-fetches a
   week), so keep the latest fetch per hour and drop hours ERA5 hasn't published yet (all null).
-  Small, so rebuilt in full each run.
+  Incremental: each run reads only recent bronze files (see below).
 #}
-{{ config(materialized='table', partitioned_by=['month(time_utc)']) }}
+{{ config(
+    materialized='incremental',
+    incremental_strategy='merge',
+    unique_key=['point_id', 'time_utc'],
+    partitioned_by=['month(time_utc)'],
+    on_schema_change='append_new_columns'
+) }}
+
+{#- Incremental runs read only bronze files from the last 14 days (dt = first date a file
+    covers): ~14 partition listings instead of ~640. After a manual backfill of older months,
+    run with --full-refresh. #}
+{%- set since_day = incremental_since('time_utc', 14) %}
 
 with rows_ as (
     select
@@ -22,6 +33,7 @@ with rows_ as (
         valid_time, temperature_2m, relative_humidity_2m, wind_speed_10m, wind_direction_10m,
         precipitation, surface_pressure, boundary_layer_height
     )
+    where b.dt >= '{{ since_day }}'
 ),
 
 ranked as (

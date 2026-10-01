@@ -40,16 +40,52 @@ vars:
   city_center_lat: 28.6315
   city_center_lon: 77.2167
 
+# Run cadence (docs/decisions.md 2026-10-01): each model runs only as often as its inputs
+# change (tags are explicit per model: dbt tags are additive, so no folder-wide defaults),
+# change, because S3 request charges per build, not storage, dominate the S3 bill.
+#   hourly  - live PM2.5/readings/forecasts and everything the dashboard and prediction need
+#   daily   - inputs that update once a day (ERA5, previous runs, CAMS history, fires) + dims
+#   weekly  - the training table (built by the GitHub Actions training workflow)
+#   predict - forecast tables (predict DAG)
+# See selectors.yml.
 models:
   checkyouraqi:
     +table_type: iceberg
     staging:
       +schema: aqi_silver
+      stg_openaq__pm25_hourly: {+tags: [hourly]}
+      stg_openaq__latest_readings: {+tags: [hourly]}
+      stg_openmeteo__weather_forecasts: {+tags: [hourly]}
+      stg_openmeteo__air_quality_forecasts: {+tags: [hourly]}
+      stg_openmeteo__weather_actuals: {+tags: [daily]}
+      stg_openmeteo__weather_previous_runs: {+tags: [daily]}
+      stg_openmeteo__air_quality: {+tags: [daily]}
+      stg_firms__fire_points: {+tags: [daily]}
+      stg_predictions: {+tags: [predict]}
     intermediate:
       +schema: aqi_silver
+      int_station_hourly: {+tags: [hourly]}
+      int_fire_points_located: {+tags: [daily]}
+      int_fires_upwind_daily: {+tags: [daily]}
+      int_fires_sector_rolling: {+tags: [daily]}
     marts:
       +schema: aqi_gold
+      fct_aqi_hourly: {+tags: [hourly]}
+      agg_zone_hourly: {+tags: [hourly]}
+      agg_city_hourly: {+tags: [hourly]}
+      fct_station_status: {+tags: [hourly]}
+      fct_feed_status: {+tags: [hourly]}
+      fct_features_live: {+tags: [hourly]}
+      dim_date: {+tags: [daily]}
+      dim_city: {+tags: [daily]}
+      dim_zone: {+tags: [daily]}
+      dim_station: {+tags: [daily]}
+      agg_city_daily: {+tags: [daily]}
+      fct_features_hourly: {+tags: [weekly]}
+      fct_forecasts: {+tags: [predict]}
+      fct_forecast_accuracy: {+tags: [predict]}
 
 seeds:
   checkyouraqi:
     +schema: aqi_silver
+    +tags: [daily]

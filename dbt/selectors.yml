@@ -1,0 +1,14 @@
+# Named selections for each schedule (see the cadence note in dbt_project.yml).
+selectors:
+  - name: hourly
+    description: Models refreshed every hour (no tests; the daily run tests everything).
+    definition: {method: tag, value: hourly}
+  - name: daily
+    description: Once-a-day inputs, dimensions and seeds.
+    definition: {method: tag, value: daily}
+  - name: weekly
+    description: The training table, built by the training workflow before training.
+    definition: {method: tag, value: weekly}
+  - name: predict
+    description: Forecast tables, built by the predict DAG after writing predictions.
+    definition: {method: tag, value: predict}

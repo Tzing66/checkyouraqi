@@ -37,3 +37,16 @@ def test_dbt_seeds_are_in_sync_with_config():
 
     for name, text in build().items():
         assert (SEEDS_DIR / name).read_text() == text, f"{name} is stale: run export_seeds.py"
+
+
+def test_every_dbt_model_has_exactly_one_cadence_tag():
+    """Each model must belong to one schedule (hourly/daily/weekly/predict): dbt tags are
+    additive, so a missing or doubled tag silently changes what runs (and what it costs)."""
+    project = yaml.safe_load((CONFIG_DIR.parent / "dbt" / "dbt_project.yml").read_text())
+    models_cfg = project["models"]["checkyouraqi"]
+    cadences = {"hourly", "daily", "weekly", "predict"}
+    for folder in ("staging", "intermediate", "marts"):
+        assert "+tags" not in models_cfg[folder], f"no folder-wide tags in {folder}"
+        for sql in (CONFIG_DIR.parent / "dbt" / "models" / folder).glob("*.sql"):
+            tags = models_cfg[folder].get(sql.stem, {}).get("+tags", [])
+            assert len(set(tags) & cadences) == 1, f"{sql.stem} needs exactly one cadence tag"

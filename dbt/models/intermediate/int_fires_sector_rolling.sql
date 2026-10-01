@@ -26,7 +26,10 @@ grid as (
     from bounds as b
     cross join unnest(array['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']) as s (sector)
     cross join unnest(sequence(
-        b.first_hour, date_trunc('hour', cast(current_timestamp as timestamp(6))),
+        -- Built daily, read hourly: extend ~26h past the build so live features always find
+        -- a row. Future rows only hold fires already known at build time (no leakage).
+        b.first_hour,
+        date_trunc('hour', cast(current_timestamp as timestamp(6))) + interval '26' hour,
         interval '1' hour)) as g (hour_utc)
 ),
 

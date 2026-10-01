@@ -66,7 +66,6 @@ models:
           arguments: {combination_of_columns: [point_id, time_utc]}
 
   - name: stg_firms__fire_points
-    data_tests: [single_firms_product_per_day]
     columns:
       - name: sensor
         data_tests:

@@ -1,9 +1,19 @@
 {#
-  VIIRS fire detections, typed. When a day has both archive (SP) and near-real-time (NRT) files
-  for a satellite, keep only SP. The two satellites mostly see the same fires, so downstream
-  must not add their counts together. A view: the whole source is ~13 MB.
+  VIIRS fire detections, typed. Incremental: each run reads only the last 10 days of bronze
+  files. Both products are kept when a day has archive (SP) and near-real-time (NRT) files;
+  int_fire_points_located applies the SP-over-NRT preference, so a later SP file for an old
+  day corrects it without deleting anything here. After a manual FIRMS backfill of older days,
+  run with --full-refresh.
 #}
-{{ config(materialized='view') }}
+{{ config(
+    materialized='incremental',
+    incremental_strategy='merge',
+    unique_key=['sensor', 'product', 'acquired_at_utc', 'latitude', 'longitude'],
+    partitioned_by=['month(acquired_at_utc)'],
+    on_schema_change='append_new_columns'
+) }}
+
+{%- set since_day = incremental_since('acquired_at_utc', 10) %}
 
 with typed as (
     select
@@ -12,13 +22,14 @@ with typed as (
         cast(longitude as double) as longitude,
         cast(frp as double) as frp_mw,
         lower(trim(confidence)) as confidence,
-        date_add('minute', cast(acq_time as integer) % 100,
+        cast(date_add('minute', cast(acq_time as integer) % 100,
             date_add('hour', cast(acq_time as integer) / 100,
-                cast(date_parse(acq_date, '%Y-%m-%d') as timestamp))) as acquired_at_utc,
+                date_parse(acq_date, '%Y-%m-%d'))) as timestamp(6)) as acquired_at_utc,
         cast(date_parse(dt, '%Y-%m-%d') as date) as acq_date,
         daynight
     from {{ source('bronze', 'firms_fires') }}
     where latitude <> 'latitude'  -- guard against a repeated header line
+        and dt >= '{{ since_day }}'
 ),
 
 labelled as (
@@ -29,16 +40,15 @@ labelled as (
     from typed
 ),
 
-ranked as (
-    select
-        *,
-        dense_rank() over (
-            partition by acq_date, sensor order by case product when 'SP' then 0 else 1 end
-        ) as product_rank
+deduped as (
+    -- MERGE needs unique source rows; identical detections can repeat within a file.
+    select *, row_number() over (
+        partition by sensor, product, acquired_at_utc, latitude, longitude order by frp_mw desc
+    ) as rn
     from labelled
 )
 
 select
     sensor, product, acquired_at_utc, acq_date, latitude, longitude, frp_mw, confidence, daynight
-from ranked
-where product_rank = 1
+from deduped
+where rn = 1

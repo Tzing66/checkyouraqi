@@ -10,9 +10,21 @@
 {%- set lat0 = var('city_center_lat') -%}
 {%- set lon0 = var('city_center_lon') %}
 
-with per_sensor_day as (
+with preferred_product as (
+    -- Archive (SP) over near-real-time (NRT) per day and satellite.
+    select *
+    from (
+        select f.*, dense_rank() over (
+            partition by acq_date, sensor order by case product when 'SP' then 0 else 1 end
+        ) as product_rank
+        from {{ ref('stg_firms__fire_points') }} as f
+    )
+    where product_rank = 1
+),
+
+per_sensor_day as (
     select acq_date, sensor, count(*) as n
-    from {{ ref('stg_firms__fire_points') }}
+    from preferred_product
     group by 1, 2
 ),
 
@@ -33,7 +45,7 @@ points as (
         f.*,
         radians(f.latitude) as phi2, radians({{ lat0 }}) as phi1,
         radians(f.longitude - {{ lon0 }}) as dlambda
-    from {{ ref('stg_firms__fire_points') }} as f
+    from preferred_product as f
     inner join chosen as c on f.acq_date = c.acq_date and f.sensor = c.sensor
     where f.confidence <> 'l'
 ),

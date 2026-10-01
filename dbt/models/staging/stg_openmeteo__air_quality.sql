@@ -2,7 +2,18 @@
   CAMS PM2.5/PM10 history per zone point and hour (best estimate per hour, not an archived
   forecast). Leakage rule: only ever use it lagged, as known at prediction time minus 12h.
 #}
-{{ config(materialized='table', partitioned_by=['month(time_utc)']) }}
+{{ config(
+    materialized='incremental',
+    incremental_strategy='merge',
+    unique_key=['point_id', 'time_utc'],
+    partitioned_by=['month(time_utc)'],
+    on_schema_change='append_new_columns'
+) }}
+
+{#- Incremental runs read only bronze files from the last 14 days (dt = first date a file
+    covers): ~14 partition listings instead of ~640. After a manual backfill of older months,
+    run with --full-refresh. #}
+{%- set since_day = incremental_since('time_utc', 14) %}
 
 with rows_ as (
     select
@@ -15,6 +26,7 @@ with rows_ as (
     cross join unnest(b.points, element_at(b.responses, 1)) as z (pt, r)
     cross join unnest(r.hourly.time, r.hourly.pm2_5, r.hourly.pm10)
         as t (valid_time, pm2_5, pm10)
+    where b.dt >= '{{ since_day }}'
 ),
 
 ranked as (
