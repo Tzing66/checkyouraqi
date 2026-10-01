@@ -5,12 +5,12 @@ resource "aws_s3_bucket" "data" {
 
 resource "aws_s3_bucket_public_access_block" "data" {
   bucket = aws_s3_bucket.data.id
-  # Fully private for now. The scoped public-read policy for public/ is added when the
-  # dashboard needs it (Phase 4), see docs/decisions.md.
+  # ACLs stay blocked. Bucket policies are allowed so public_access.tf can make ONLY public/*
+  # readable for the hosted dashboard (owner decision 3a, Phase 5).
   block_public_acls       = true
-  block_public_policy     = true
+  block_public_policy     = false
   ignore_public_acls      = true
-  restrict_public_buckets = true
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_ownership_controls" "data" {

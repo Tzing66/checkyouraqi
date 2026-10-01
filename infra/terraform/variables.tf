@@ -31,3 +31,26 @@ variable "ssm_parameters" {
     "llm_api_key",
   ]
 }
+
+variable "ec2_enabled" {
+  description = "Create the Airflow server. Off by default: it is the project's main running cost."
+  type        = bool
+  default     = false
+}
+
+variable "ec2_instance_type" {
+  description = "Cheapest Free-plan type that fits Airflow + hourly jobs (training runs on GitHub)."
+  type        = string
+  default     = "t4g.small"
+}
+
+variable "ec2_volume_gb" {
+  type    = number
+  default = 20
+}
+
+variable "github_repo" {
+  description = "owner/name allowed to assume the training role (main branch only)."
+  type        = string
+  default     = "Tzing66/checkyouraqi"
+}

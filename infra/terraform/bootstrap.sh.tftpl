@@ -1,0 +1,67 @@
+#!/bin/bash
+# First-boot setup for the Airflow server (rendered by Terraform; runs once as root).
+# Log: /var/log/checkyouraqi-bootstrap.log
+set -euxo pipefail
+exec > >(tee -a /var/log/checkyouraqi-bootstrap.log) 2>&1
+
+# --- swap: 2 GB of RAM is tight for Airflow + dbt; swap absorbs short peaks ------------------
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  echo "/swapfile none swap sw 0 0" >> /etc/fstab
+fi
+
+# --- docker + compose + buildx (AL2023 ships docker without the plugins) ----------------------
+dnf install -y docker git
+systemctl enable --now docker
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  "https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-aarch64"
+curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+  "https://github.com/docker/buildx/releases/download/v0.37.2/buildx-v0.37.2.linux-arm64"
+chmod +x /usr/local/lib/docker/cli-plugins/*
+
+# --- code ---------------------------------------------------------------------------------------
+APP=/opt/checkyouraqi
+[ -d "$APP/.git" ] || git clone --depth 1 "${repo_url}" "$APP"
+cd "$APP"
+
+# --- config: keys from SSM (never in the repo or user-data); no AWS_PROFILE -> instance role --
+get() { aws ssm get-parameter --region "${region}" --with-decryption --name "${ssm_prefix}/$1" \
+          --query Parameter.Value --output text; }
+umask 077
+cat > .env <<ENV
+OPENAQ_API_KEY=$(get openaq_api_key)
+FIRMS_MAP_KEY=$(get firms_map_key)
+DATA_BUCKET=${bucket}
+AWS_REGION=${region}
+AWS_DEFAULT_REGION=${region}
+ENV
+mkdir -p /opt/empty-aws airflow/logs
+chown -R 50000:0 airflow/logs
+cat > airflow/.env <<ENV
+AIRFLOW_JWT_SECRET=$(openssl rand -hex 32)
+AWS_CONFIG_DIR=/opt/empty-aws
+ENV
+# Airflow's containers run as uid 50000 and must read the repo's .env via env_file only.
+
+# --- start Airflow and unpause the production DAGs -------------------------------------------
+docker compose -f airflow/docker-compose.yaml up -d --build
+for i in $(seq 1 60); do
+  docker compose -f airflow/docker-compose.yaml exec -T airflow-scheduler airflow dags list \
+    >/dev/null 2>&1 && break
+  sleep 10
+done
+for dag in ingest_openaq ingest_weather ingest_weather_actuals ingest_fires dbt_build dbt_daily \
+           predict monitor; do
+  docker compose -f airflow/docker-compose.yaml exec -T airflow-scheduler airflow dags unpause "$dag" || true
+done
+
+# --- housekeeping: keep a week of task logs on the 20 GB disk --------------------------------
+cat > /etc/cron.daily/checkyouraqi-logs <<'CRON'
+#!/bin/bash
+find /opt/checkyouraqi/airflow/logs -type f -mtime +7 -delete
+find /opt/checkyouraqi/airflow/logs -type d -empty -delete
+docker image prune -f >/dev/null
+CRON
+chmod +x /etc/cron.daily/checkyouraqi-logs
+echo "bootstrap complete"

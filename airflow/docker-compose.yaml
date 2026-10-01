@@ -39,8 +39,9 @@ x-airflow-common: &airflow-common
     - ../lakehouse:/opt/airflow/project/lakehouse:ro
     - ../ml:/opt/airflow/project/ml:ro
     - ../dbt:/opt/airflow/project/dbt:ro
-    # Local only. On EC2 (Phase 5) the instance role replaces this mount.
-    - ~/.aws:/opt/airflow/aws:ro
+    # Local: your ~/.aws (profile from .env). On EC2, AWS_CONFIG_DIR points at an empty dir,
+    # AWS_PROFILE is unset, and boto3 falls back to the instance role (IMDSv2, hop limit 2).
+    - ${AWS_CONFIG_DIR:-~/.aws}:/opt/airflow/aws:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-common-depends-on
     postgres:
