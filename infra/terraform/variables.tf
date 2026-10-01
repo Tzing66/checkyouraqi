@@ -50,7 +50,17 @@ variable "ec2_volume_gb" {
 }
 
 variable "github_repo" {
-  description = "owner/name allowed to assume the training role (main branch only)."
+  description = "owner/name of the repo (used for the clone URL)."
   type        = string
   default     = "Tzing66/checkyouraqi"
+}
+
+variable "github_oidc_subject_prefix" {
+  description = <<-EOT
+    The repo's OIDC `sub` prefix. This repo uses GitHub's immutable-subject format
+    (owner@owner_id/repo@repo_id), so a renamed or re-created repo with the same name can't
+    assume the role. Check with: gh api repos/OWNER/REPO/actions/oidc/customization/sub
+  EOT
+  type        = string
+  default     = "repo:Tzing66@164254504/checkyouraqi@1392845505"
 }

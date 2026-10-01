@@ -39,6 +39,13 @@ Decisions not covered by the plan, newest first. Format: date — decision — w
   - Removed the Phase 0 spike script (replaced by discovery). Tidied `.gitignore` (duplicates, junk `.bak` lines, obsolete `mlruns/`; plans `*.tfplan` ignored). Updated stale t3.small references and pre-commit-hooks (v4.6 → v6). Added operating notes to `CLAUDE.md`. Removed local experiment leftovers.
   - `ml/` exports get a 14-day S3 expiry (Terraform written, awaiting owner OK; free).
   - Kept deliberately: `alerts/` and `assistant/` (Phase 6), `--target log_ratio` (documented experiment), the AQI breakpoint TODO (verify CPCB's severe upper bound before using sub-index values).
+- **Training workflow verified on GitHub** (manual dry run):
+  - OIDC → dbt weekly (PASS=5) → train (24/48/72h MAE 31.41/33.80/35.05; Linux float differences vs macOS 31.38/33.84/35.19) → promote: "no decision" (no data after production's cutoff). 6.8 min; **peak 1.4 GB** (confirms keeping training off the 2 GB server).
+  - Two fixes:
+    1. This repo uses GitHub's **immutable OIDC subject** (`repo:Tzing66@164254504/checkyouraqi@1392845505:ref:refs/heads/main`). The trust policy now matches it exactly, which is safer than the name-based form (a re-created repo with the same name can't assume the role).
+    2. Public run logs echoed the bucket name and role ARN (account id). Both are now **GitHub secrets** (masked), and the job guard is the variable `TRAINING_ENABLED`. The two runs whose logs showed the id were deleted.
+  - Note: once the dashboard is hosted, the public data URL (`checkyouraqi-<account>.s3...`) inevitably reveals the account id in browsers' network requests. That's inherent to direct public S3 reads (decision 3a). AWS doesn't treat account ids as secret, but a CloudFront domain could hide it later if wanted.
+- **Applied (free):** 14-day expiry on `ml/` exports. Repo secrets `DATA_BUCKET` and `AWS_TRAIN_ROLE_ARN` plus variable `TRAINING_ENABLED=true`. Backup branch `backup/pre-author-rewrite` deleted (owner OK).
 - **Measurement in progress:** baseline (old full hourly build) 11:54:15–11:57:12 UTC; new hourly 12:00:57–12:03:03; daily (incl. one-off fires rebuild) 12:03:09–12:05:47; steady-state daily 12:06:21–12:08:53. S3 access logs are best-effort and still arriving (owner chose to wait rather than pay for CloudWatch metrics). Results to be recorded here.
 
 ## 2026-09-29 — Dashboard (Phase 4)

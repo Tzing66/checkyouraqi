@@ -23,12 +23,13 @@ concurrency:
 
 jobs:
   train:
-    # Skips cleanly until the AWS role and bucket are configured as repo variables.
-    if: vars.AWS_TRAIN_ROLE_ARN != '' && vars.DATA_BUCKET != ''
+    # Off until the repo variable TRAINING_ENABLED is 'true'. The bucket and role are SECRETS,
+    # not variables, so GitHub masks them (and the account id in them) in these public logs.
+    if: vars.TRAINING_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_BUCKET: ${{ secrets.DATA_BUCKET }}
       AWS_REGION: ap-south-1
       PYTHONPATH: ${{ github.workspace }}
       MLFLOW_DISABLE_AGENT_HINT: "1"
@@ -45,7 +46,7 @@ jobs:
       - name: AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_TRAIN_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_TRAIN_ROLE_ARN }}
           aws-region: ap-south-1
           mask-aws-account-id: true
 
