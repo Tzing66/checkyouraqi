@@ -20,6 +20,17 @@ Decisions not covered by the plan, newest first. Format: date — decision — w
   - The fire sector grid extends 26h past the build so hourly live features always find a row (no leakage: only already-known fires).
   - After manual backfills of older periods, run these models with `--full-refresh`.
   - The one-off view→table conversion of fires hit a dbt-athena "Query type not supported by DDL engine" on `--full-refresh`. The view was already dropped, and the next run created the table cleanly (158,702 rows).
+- **Weekly training on GitHub Actions** (`.github/workflows/train.yml`): Sunday 02:00 IST plus a manual run button.
+  - OIDC role `checkyouraqi-github-train` (main branch of this repo only).
+  - Steps: dbt `--selector weekly` (training table + leakage test) → `ml.train --refresh` → `ml.promote`.
+  - The MLflow SQLite DB persists in `s3://…/mlflow/tracking/`.
+  - It skips until the repo variables `AWS_TRAIN_ROLE_ARN` and `DATA_BUCKET` are set.
+- **Promotion rule made fair (`ml/promote.py`):**
+  - A challenger is trained on data before a holdout and scored against production on that holdout.
+  - The holdout is the last 14 days **but never before production's training cutoff**, so production is scored out-of-sample too. Training now records `trained_until_utc`; older models use their promotion time as a conservative cutoff.
+  - Fewer than 3 days of new data → "no decision, keep production".
+  - First real dry run: an unconstrained 14-day holdout showed production 13.4 vs challenger 22.0 MAE, purely because production had trained on those days. With the fix: "no decision: 0.0 days of data after production's cutoff" (OpenAQ outage).
+- **dbt profile no longer pins an AWS profile** (it defaulted to `checkyouraqi-dev`, which doesn't exist on EC2 or GitHub). Credentials follow boto3's default chain: `AWS_PROFILE` from `.env` locally, the instance role on EC2, OIDC on GitHub.
 - **Measurement in progress:** baseline (old full hourly build) 11:54:15–11:57:12 UTC; new hourly 12:00:57–12:03:03; daily (incl. one-off fires rebuild) 12:03:09–12:05:47; steady-state daily 12:06:21–12:08:53. S3 access logs are best-effort and still arriving (owner chose to wait rather than pay for CloudWatch metrics). Results to be recorded here.
 
 ## 2026-09-29 — Dashboard (Phase 4)

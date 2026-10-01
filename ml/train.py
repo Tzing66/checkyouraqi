@@ -279,7 +279,15 @@ def main() -> None:
                     mlflow.log_metric(f"skill_vs_{name}", r["skill"][name])
                 path = MODEL_DIR / f"lgbm_h{h}.txt"
                 r["final_model"].booster_.save_model(str(path))
-                meta = {"horizon_h": h, "target_transform": args.target, "features": FEATURES}
+                meta = {
+                    "horizon_h": h,
+                    "target_transform": args.target,
+                    "features": FEATURES,
+                    # Latest label time seen in training: a fair promotion holdout starts after it.
+                    "trained_until_utc": str(
+                        (df["target_hour_start_utc"].max() + pd.Timedelta(hours=1)).isoformat()
+                    ),
+                }
                 (MODEL_DIR / f"lgbm_h{h}.json").write_text(json.dumps(meta, indent=1))
                 mlflow.log_artifact(str(path), artifact_path="model")
                 imp_path = MODEL_DIR / f"importance_h{h}.json"

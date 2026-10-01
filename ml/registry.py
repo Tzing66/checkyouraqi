@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 import lightgbm as lgb
+import pandas as pd
 
 from ingestion.settings import ROOT, Settings
 from ml.features import HORIZONS
@@ -39,6 +40,9 @@ class ProductionModel:
     booster: lgb.Booster
     target_transform: str
     features: list[str]
+    # Latest training label time; for models promoted before this was recorded, the promotion
+    # time (a conservative upper bound: no data after it can have been used).
+    trained_until: pd.Timestamp
 
 
 def s3_client(settings: Settings) -> Any:
@@ -112,6 +116,9 @@ def load_production(
             booster=lgb.Booster(model_file=str(local)),
             target_transform=spec["target_transform"],
             features=spec["features"],
+            trained_until=pd.Timestamp(
+                spec.get("trained_until_utc") or datetime.strptime(version, "%Y%m%dT%H%M%SZ")
+            ).tz_localize(None),
         )
     return out
 

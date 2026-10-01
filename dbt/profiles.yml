@@ -1,11 +1,12 @@
-# No secrets here: bucket and AWS profile come from the environment (repo .env), via scripts/dbt.sh.
+# No secrets here: the bucket comes from the environment (repo .env, via scripts/dbt.sh). AWS
+# credentials follow boto3's default chain: AWS_PROFILE locally (.env), the instance role on EC2,
+# OIDC on GitHub Actions, so no profile name is pinned here.
 checkyouraqi:
   target: dev
   outputs:
     dev:
       type: athena
       region_name: ap-south-1
-      aws_profile_name: "{{ env_var('AWS_PROFILE', 'checkyouraqi-dev') }}"
       work_group: checkyouraqi
       database: awsdatacatalog
       schema: aqi_silver

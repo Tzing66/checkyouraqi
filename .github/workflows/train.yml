@@ -1,0 +1,79 @@
+# Weekly model training (owner decision, Phase 5): runs on GitHub's free runners instead of the
+# 2 GB Airflow server. Authenticates to AWS with OIDC (no stored keys); the role trusts only the
+# main branch of this repo. Logs of a public repo are public: nothing secret is printed.
+name: weekly-train
+
+on:
+  schedule:
+    - cron: "30 20 * * 6" # Sunday 02:00 IST
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compare against production but never promote"
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write # OIDC token for AWS
+  contents: read
+
+concurrency:
+  group: weekly-train
+  cancel-in-progress: false
+
+jobs:
+  train:
+    # Skips cleanly until the AWS role and bucket are configured as repo variables.
+    if: vars.AWS_TRAIN_ROLE_ARN != '' && vars.DATA_BUCKET != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      AWS_REGION: ap-south-1
+      PYTHONPATH: ${{ github.workspace }}
+      MLFLOW_DISABLE_AGENT_HINT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install project dependencies
+        run: uv sync --frozen
+
+      - name: AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TRAIN_ROLE_ARN }}
+          aws-region: ap-south-1
+          mask-aws-account-id: true
+
+      - name: Build the training table (dbt, weekly selector + leakage test)
+        run: |
+          uv tool install dbt-core==1.12.5 --with dbt-athena==1.11.1
+          cd dbt
+          dbt deps --profiles-dir .
+          dbt build --selector weekly --profiles-dir . --no-use-colors
+
+      - name: Restore MLflow tracking DB
+        run: |
+          mkdir -p data/ml
+          aws s3 cp --quiet "s3://${DATA_BUCKET}/mlflow/tracking/mlflow.db" data/ml/mlflow.db \
+            || echo "no tracking DB yet; starting a new one"
+
+      - name: Train (walk-forward CV + final models)
+        run: uv run python -m ml.train --refresh
+
+      - name: Promote if it beats production on held-out recent data
+        run: uv run python -m ml.promote ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Save MLflow tracking DB
+        if: always()
+        run: |
+          [ -f data/ml/mlflow.db ] && aws s3 cp --quiet data/ml/mlflow.db \
+            "s3://${DATA_BUCKET}/mlflow/tracking/mlflow.db" || true
+
+      - name: Results summary
+        if: success()
+        run: cat docs/model_results.md >> "$GITHUB_STEP_SUMMARY"

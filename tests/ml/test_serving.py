@@ -40,7 +40,10 @@ def _booster(df):
 def test_predict_frame_uses_each_horizons_model_and_keeps_stale_labels():
     df = _features()
     b = _booster(df)
-    models = {h: ProductionModel("v1", h, b, "absolute", FEATURES) for h in (24, 48)}
+    models = {
+        h: ProductionModel("v1", h, b, "absolute", FEATURES, pd.Timestamp("2026-09-24"))
+        for h in (24, 48)
+    }
     preds = predict_frame(df, models)
     assert len(preds) == 12
     assert set(preds["horizon_h"]) == {24, 48}
@@ -53,7 +56,9 @@ def test_predict_frame_uses_each_horizons_model_and_keeps_stale_labels():
 def test_payload_is_json_serialisable_and_keyed_by_issue_hour():
     df = _features(n=1, horizons=(24,))
     b = _booster(_features())
-    preds = predict_frame(df, {24: ProductionModel("v1", 24, b, "absolute", FEATURES)})
+    preds = predict_frame(
+        df, {24: ProductionModel("v1", 24, b, "absolute", FEATURES, pd.Timestamp("2026-09-24"))}
+    )
     payload = to_payload(preds, datetime(2026, 9, 29, 11, 40, tzinfo=UTC))
     json.dumps(payload)
     p = payload["predictions"][0]
