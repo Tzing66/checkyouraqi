@@ -7,7 +7,7 @@
     on_schema_change='append_new_columns'
 ) }}
 
-{%- set since_day = incremental_since('issued_at', 2) %}
+{%- set recent = recent_hourly_partitions('issued_at') %}
 
 select
     pt.id as point_id,
@@ -21,4 +21,4 @@ select
 from {{ source('bronze', 'openmeteo_air_quality_forecasts') }} as b
 cross join unnest(b.points, element_at(b.responses, 1)) as z (pt, r)
 cross join unnest(r.hourly.time, r.hourly.pm2_5, r.hourly.pm10) as t (valid_time, pm2_5, pm10)
-where b.dt >= '{{ since_day }}'
+where {{ recent }}

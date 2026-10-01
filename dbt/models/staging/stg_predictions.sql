@@ -7,7 +7,7 @@
     on_schema_change='append_new_columns'
 ) }}
 
-{%- set since_day = incremental_since('issue_time_utc', 2) %}
+{%- set recent = recent_hourly_partitions('predicted_at') %}
 
 with rows_ as (
     select
@@ -24,7 +24,7 @@ with rows_ as (
         {{ utc_ts('b.predicted_at') }} as predicted_at
     from {{ source('bronze', 'predictions') }} as b
     cross join unnest(b.predictions) as p (r)
-    where b.dt >= '{{ since_day }}'
+    where {{ recent }}
 ),
 
 ranked as (

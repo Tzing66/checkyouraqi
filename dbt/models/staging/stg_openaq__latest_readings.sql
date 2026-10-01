@@ -11,7 +11,7 @@
     on_schema_change='append_new_columns'
 ) }}
 
-{%- set since_day = incremental_since('last_fetched_at', 2) %}
+{%- set recent = recent_hourly_partitions('last_fetched_at') %}
 
 with readings as (
     select
@@ -24,7 +24,7 @@ with readings as (
     cross join unnest(b.stations) as s (location_id, pages)
     cross join unnest(s.pages) as p (page)
     cross join unnest(page.results) as r (m)
-    where b.dt >= '{{ since_day }}'
+    where {{ recent }}
 )
 
 select

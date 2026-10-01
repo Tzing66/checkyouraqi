@@ -12,7 +12,7 @@
 ) }}
 
 {%- set since_month = incremental_since('hour_start_utc', 40, '%Y-%m') -%}
-{%- set since_day = incremental_since('hour_start_utc', 2) %}
+{%- set recent = recent_hourly_partitions('fetched_at', max_lookback_hours=24) %}
 
 with history as (
     select
@@ -36,7 +36,7 @@ live as (
     cross join unnest(b.stations) as s (location_id, pages)
     cross join unnest(s.pages) as p (page)
     cross join unnest(page.results) as m (m)
-    where b.dt >= '{{ since_day }}'
+    where {{ recent }}
 ),
 
 unioned as (
