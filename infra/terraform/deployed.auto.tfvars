@@ -2,4 +2,4 @@
 # intended state, so a plan run without flags never destroys a deployed piece.
 ec2_enabled   = true
 api_enabled   = true
-api_image_tag = "" # set by scripts/deploy_api.sh's output after an image is pushed
+api_image_tag = "ca49c5d675d1"

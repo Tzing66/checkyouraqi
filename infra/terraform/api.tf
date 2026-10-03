@@ -101,8 +101,10 @@ resource "aws_lambda_function_url" "api" {
 
 # A public Function URL needs both permissions (AWS requirement since Oct 2025).
 resource "aws_lambda_permission" "api_url" {
-  count                  = local.api_function_enabled ? 1 : 0
-  statement_id           = "FunctionUrlPublic"
+  count        = local.api_function_enabled ? 1 : 0
+  statement_id = "FunctionUrlPublic"
+  # One change at a time: Lambda rejects concurrent updates to a function (409).
+  depends_on             = [aws_lambda_function_url.api]
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.api[0].function_name
   principal              = "*"
@@ -112,6 +114,7 @@ resource "aws_lambda_permission" "api_url" {
 resource "aws_lambda_permission" "api_invoke_via_url" {
   count                    = local.api_function_enabled ? 1 : 0
   statement_id             = "FunctionUrlInvoke"
+  depends_on               = [aws_lambda_permission.api_url]
   action                   = "lambda:InvokeFunction"
   function_name            = aws_lambda_function.api[0].function_name
   principal                = "*"

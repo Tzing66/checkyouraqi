@@ -23,6 +23,6 @@ docker buildx build --platform linux/arm64 --provenance=false -f api/Dockerfile 
   -t "$REPO_URL:$TAG" --push .
 
 echo
-echo "pushed $REPO_NAME:$TAG. Now, in infra/terraform:"
-echo "  terraform plan -var api_enabled=true -var api_image_tag=$TAG -out=api.tfplan"
-echo "  terraform apply api.tfplan"
+echo "pushed $REPO_NAME:$TAG. Now set api_image_tag = \"$TAG\" in"
+echo "infra/terraform/deployed.auto.tfvars, then in infra/terraform:"
+echo "  terraform plan -out=api.tfplan && terraform apply api.tfplan"
