@@ -53,7 +53,13 @@ for i in $(seq 1 60); do
 done
 for dag in ingest_openaq ingest_weather ingest_weather_actuals ingest_fires dbt_build dbt_daily \
            predict monitor; do
-  docker compose -f airflow/docker-compose.yaml exec -T airflow-scheduler airflow dags unpause "$dag" || true
+  # A DAG can only be unpaused once the dag-processor has parsed it ("No paused DAGs were
+  # found" otherwise, and it stays paused): retry until the CLI reports it unpaused.
+  for i in $(seq 1 30); do
+    docker compose -f airflow/docker-compose.yaml exec -T airflow-scheduler \
+      airflow dags unpause "$dag" 2>/dev/null | grep -q "$dag" && break
+    sleep 10
+  done
 done
 
 # --- housekeeping: keep a week of task logs on the 20 GB disk --------------------------------

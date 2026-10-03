@@ -65,9 +65,10 @@ resource "aws_instance" "airflow" {
   })
   user_data_replace_on_change = false
 
-  # Ignore AMI updates so a newer Amazon Linux release doesn't replace a running server.
+  # Ignore AMI and bootstrap edits so neither stops or replaces a running server; they apply
+  # to the next server (`terraform apply -replace=aws_instance.airflow[0]`).
   lifecycle {
-    ignore_changes = [ami]
+    ignore_changes = [ami, user_data]
   }
 
   tags = {
