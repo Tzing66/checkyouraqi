@@ -22,6 +22,8 @@ from the first unchecked item in §12. Tick items off in the plan as they are do
 - **AWS profiles (account 242254325008 only):** `checkyouraqi` = admin, Terraform only;
   `checkyouraqi-dev` = least-privilege pipeline user (set in `.env`). There is no default profile.
   On EC2 the instance role is used; on GitHub Actions an OIDC role (main branch only).
+- **CI:** `.github/workflows/ci.yml` runs ruff, pytest, `dbt parse` and `terraform validate` on every push/PR,
+  with no AWS access. Keep it green before deploying.
 - **Terraform:** `infra/terraform` (state in S3, `backend.hcl` git-ignored). Always
   `terraform plan -out=x.tfplan`, show it, get approval, then `terraform apply x.tfplan`.
   What is switched on (`ec2_enabled`, `api_enabled`, `api_image_tag`) lives in the committed
