@@ -123,6 +123,9 @@ Full tables: [docs/model_results.md](docs/model_results.md). Live accuracy is on
 - **Honest about stale data.** Stations and the whole feed are classified live, delayed, inactive
   or outage. Forecasts built from stale inputs are labelled with the inputs' age. Nothing pretends
   old data is current.
+
+  ![Station page during the OpenAQ outage](docs/images/station.png)
+
 - **Cost measured, not guessed.** S3 server access logs showed that dbt's partition listings were
   the real S3 cost (~$42/month). Running each model only as often as its data changes, and
   filtering to the recent hours, brought that to ~$3/month (−93%).
