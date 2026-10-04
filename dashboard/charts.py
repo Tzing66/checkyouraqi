@@ -75,7 +75,7 @@ def history_chart(hourly: pd.DataFrame, mode: str = "light") -> alt.Chart:
     long["series"] = long["series"].map({"pm25": order[0], "pm25_24h": order[1]})
     color = alt.Color("series:N", scale=alt.Scale(domain=order, range=[c1, c2]), legend=_legend())
     x = alt.X("time_ist:T", title="Time (IST)")
-    y = alt.Y("value:Q", axis=_aqi_axis("PM2.5 (µg/m³) · AQI category upper bound"))
+    y = alt.Y("value:Q", axis=_aqi_axis("PM2.5 (µg/m³)"))
     lines = (
         alt.Chart(long)
         .mark_line(strokeWidth=2, interpolate="monotone")
@@ -119,7 +119,7 @@ def history_chart(hourly: pd.DataFrame, mode: str = "light") -> alt.Chart:
 def monthly_mae_chart(per_month: list[dict], mode: str = "light") -> alt.Chart:
     """Walk-forward MAE by test month: model vs persistence (two series, one unit)."""
     c1, c2 = SERIES[mode]
-    order = ["LightGBM", "Persistence"]
+    order = ["This model", "No-change guess"]
     d = pd.DataFrame(per_month)
     d["month"] = pd.to_datetime(d["fold"] + "-01")
     long = d.melt(
@@ -131,7 +131,7 @@ def monthly_mae_chart(per_month: list[dict], mode: str = "light") -> alt.Chart:
     long["series"] = long["series"].map({"mae": order[0], "persistence_mae": order[1]})
     color = alt.Color("series:N", scale=alt.Scale(domain=order, range=[c1, c2]), legend=_legend())
     x = alt.X("yearmonth(month):T", title="Test month")
-    y = alt.Y("mae_value:Q", title="MAE (µg/m³, lower is better)")
+    y = alt.Y("mae_value:Q", title="Typical error (µg/m³)")
     line = (
         alt.Chart(long)
         .mark_line(strokeWidth=2, point=alt.OverlayMarkDef(size=64))
@@ -151,15 +151,36 @@ def monthly_mae_chart(per_month: list[dict], mode: str = "light") -> alt.Chart:
     return alt.layer(line, labels).properties(height=300, padding={"right": 80})
 
 
+FEATURE_NAMES = {
+    "pm25_last_valid": "Latest reading",
+    "pm25_same_hour_7d": "Same hour, past week",
+    "location_id": "Which station",
+    "fires_nw_arc_72h": "Upwind fires, last 3 days",
+    "fires_nw_arc_24h": "Upwind fires, last day",
+    "city_pm25_24h_median": "City 24h average",
+    "city_pm25_median": "City average now",
+    "fc_wind_speed_10m": "Forecast wind speed",
+    "fc_wind_direction_10m": "Forecast wind direction",
+    "pm25_mean_6h": "Average, last 6 hours",
+    "target_month": "Month",
+    "target_dow_ist": "Day of week",
+    "target_hour_ist": "Hour of day",
+}
+
+
+def feature_label(name: str) -> str:
+    return FEATURE_NAMES.get(name, name.replace("_", " ").capitalize())
+
+
 def feature_bars(top: dict[str, float], mode: str = "light") -> alt.Chart:
     """Top features by share of gain (single series: no legend, the title names it)."""
     c1, _ = SERIES[mode]
-    d = pd.DataFrame({"feature": list(top), "share": list(top.values())})
+    d = pd.DataFrame({"feature": [feature_label(k) for k in top], "share": list(top.values())})
     return (
         alt.Chart(d)
         .mark_bar(color=c1, cornerRadiusEnd=4, height=14)
         .encode(
-            x=alt.X("share:Q", title="Share of total gain", axis=alt.Axis(format="%")),
+            x=alt.X("share:Q", title="Share of decisions", axis=alt.Axis(format="%")),
             y=alt.Y("feature:N", sort="-x", title=None, axis=alt.Axis(labelLimit=240)),
             tooltip=[alt.Tooltip("feature:N"), alt.Tooltip("share:Q", format=".1%")],
         )

@@ -1,9 +1,10 @@
 """Shared presentation helpers: AQI colours/labels, IST formatting, freshness wording.
 
-AQI colours: India's official AQI hues, treated as a fixed *status* scale (never themed,
-always shipped with the category label as text). Satisfactory and moderately-polluted are
-darkened from the official #92D050 / yellow so every swatch clears 2:1 on light and dark
-surfaces (validated with the dataviz skill's validator; see docs/decisions.md).
+AQI colours: India's AQI hue order (green -> yellow -> orange -> red -> maroon), re-stepped
+in lightness so neighbouring categories stay apart under colour-vision deficiency (min
+adjacent OKLab dE 10.2 across protan/deutan/tritan). It's a fixed *status* scale: never
+themed, always shipped with the category name as text. Pills use a pale tint of the colour,
+which gives the pastel look; map markers use the full colour. See docs/decisions.md.
 """
 
 from __future__ import annotations
@@ -25,20 +26,32 @@ from ingestion.freshness import (
 )
 
 AQI = {
-    "good": ("Good", "#00B050"),
-    "satisfactory": ("Satisfactory", "#7FBF3F"),
-    "moderately_polluted": ("Moderately polluted", "#C9A800"),
-    "poor": ("Poor", "#E68A00"),
-    "very_poor": ("Very poor", "#FF0000"),
-    "severe": ("Severe", "#A50021"),
+    "good": ("Good", "#66EAC8"),
+    "satisfactory": ("Satisfactory", "#CFE353"),
+    "moderately_polluted": ("Moderately polluted", "#DFAB47"),
+    "poor": ("Poor", "#D0773C"),
+    "very_poor": ("Very poor", "#C52A39"),
+    "severe": ("Severe", "#6E2745"),
 }
-NO_DATA = ("No data", "#8a8a85")
+NO_DATA = ("No data", "#B4B9C6")
+
+# Plain-language health note per category (after CPCB's National AQI health statements).
+ADVICE = {
+    "good": "Minimal health impact.",
+    "satisfactory": "Minor breathing discomfort for sensitive people.",
+    "moderately_polluted": "Discomfort for people with asthma, lung or heart disease, "
+    "children and older adults.",
+    "poor": "Breathing discomfort for most people on prolonged exposure.",
+    "very_poor": "Respiratory illness on prolonged exposure. Limit time outdoors.",
+    "severe": "Affects healthy people; serious for those with existing conditions. "
+    "Stay indoors if you can.",
+}
 BREAKPOINTS = [30, 60, 90, 120, 250]  # upper bounds of the first five categories (µg/m³)
 
 # Two-series charts (model vs baseline): categorical slots 1-2 of the dataviz palette.
 SERIES = {
-    "light": ("#2a78d6", "#eb6834"),
-    "dark": ("#3987e5", "#d95926"),
+    "light": ("#5B6CD9", "#E07B4F"),
+    "dark": ("#8B98EC", "#EE9A74"),
 }
 
 STATUS_LABEL = {
@@ -71,14 +84,26 @@ def category_of(pm25: float | None) -> str | None:
     return "severe"
 
 
+def _tint(hex_color: str, amount: float) -> str:
+    """Mix a colour with white (amount = share of the colour)."""
+    h = hex_color.lstrip("#")
+    rgb = [int(h[i : i + 2], 16) for i in (0, 2, 4)]
+    return "#" + "".join(f"{round(255 - (255 - c) * amount):02X}" for c in rgb)
+
+
 def swatch(category: str | None) -> str:
-    """Colour chip + text label (identity is never carried by colour alone)."""
+    """AQI pill: pale tint of the category colour, a solid dot, and the category name as text
+    (identity is never carried by colour alone)."""
     label, color = AQI.get(category or "", NO_DATA)
     return (
-        f'<span style="display:inline-block;width:0.8em;height:0.8em;border-radius:3px;'
-        f"background:{color};margin-right:0.35em;vertical-align:-0.05em;"
-        f'border:1px solid rgba(0,0,0,0.35)"></span>{label}'
+        f'<span class="cya-pill" style="background:{_tint(color, 0.22)};'
+        f'border-color:{_tint(color, 0.45)}"><span class="cya-dot" '
+        f'style="background:{color}"></span>{label}</span>'
     )
+
+
+def advice(category: str | None) -> str:
+    return ADVICE.get(category or "", "")
 
 
 def to_utc(ts) -> datetime | None:
@@ -130,6 +155,7 @@ __all__ = [
     "age_text",
     "aqi_color",
     "aqi_label",
+    "advice",
     "category_of",
     "feed_state",
     "ist",

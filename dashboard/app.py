@@ -20,10 +20,14 @@ st.set_page_config(
     layout="wide",
 )
 
+from dashboard.style import apply  # noqa: E402  (needs the sys.path fix above)
+
+apply()
+
 pages = [
-    st.Page("views/overview.py", title="Overview", icon=":material/map:", default=True),
-    st.Page("views/station.py", title="Station", icon=":material/location_on:"),
-    st.Page("views/model_health.py", title="Model health", icon=":material/monitoring:"),
+    st.Page("views/overview.py", title="Home", icon=":material/home:", default=True),
+    st.Page("views/station.py", title="Stations", icon=":material/location_on:"),
+    st.Page("views/model_health.py", title="Forecast accuracy", icon=":material/insights:"),
     st.Page("views/about.py", title="About", icon=":material/info:"),
 ]
-st.navigation(pages).run()
+st.navigation(pages, position="top").run()

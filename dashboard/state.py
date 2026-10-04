@@ -1,4 +1,4 @@
-"""Streamlit-side state: cached snapshot, theme mode, the site-wide freshness banner."""
+"""Streamlit-side state: cached snapshot, theme mode, the site-wide freshness notice, footer."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 import streamlit as st
 
 from dashboard.data import Snapshot, default_source, load_snapshot, station_overview
+from dashboard.style import note
 from dashboard.ui import FeedStatus, feed_state, ist
 
 
@@ -28,21 +29,26 @@ def theme_mode() -> str:
         return "light"
 
 
-def feed_banner(snap: Snapshot) -> None:
-    """Site-wide banner: says when the *service* is down, vs individual stations (plan §1)."""
+def feed_status(snap: Snapshot):
+    """(report, message) for the whole data feed: the *service* being down, as opposed to
+    individual stations (plan §1)."""
     status = snap.table("station_status")
     if status.empty:
-        return
+        return None, None
     last = dict(zip(status["location_id"], status["last_pm25_reading_utc"], strict=True))
-    report, message = feed_state(last, datetime.now(UTC))
-    if report.status == FeedStatus.OUTAGE:
-        st.error(message, icon=":material/cloud_off:")
-    elif report.status == FeedStatus.DEGRADED:
-        st.warning(message, icon=":material/warning:")
+    return feed_state(last, datetime.now(UTC))
+
+
+def feed_banner(snap: Snapshot) -> None:
+    """One soft site-wide notice when the source is degraded or down; nothing when healthy."""
+    report, message = feed_status(snap)
+    if report is not None and report.status != FeedStatus.OK and message:
+        note(message)
 
 
 def footer(snap: Snapshot) -> None:
-    st.caption(
-        f"Data exported {ist(snap.exported_at)}. Air quality: OpenAQ (CPCB stations). "
-        "Weather & CAMS: Open-Meteo. Fires: NASA FIRMS. See About for attribution."
+    st.markdown(
+        f'<div class="cya-foot">Updated {ist(snap.exported_at)} · Air quality from OpenAQ '
+        "(CPCB stations) · Weather from Open-Meteo · Fires from NASA FIRMS</div>",
+        unsafe_allow_html=True,
     )

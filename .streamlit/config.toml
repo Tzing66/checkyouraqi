@@ -1,0 +1,13 @@
+# Dashboard theme: light, soft pastel surfaces (Streamlit Cloud runs from the repo root).
+[theme]
+base = "light"
+primaryColor = "#5B6CD9"
+backgroundColor = "#F7F8FC"
+secondaryBackgroundColor = "#EEF1FA"
+textColor = "#2B2F3A"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+baseRadius = "0.75rem"
+borderColor = "#E3E7F2"
+
+[client]
+toolbarMode = "minimal"
