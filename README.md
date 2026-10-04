@@ -40,38 +40,21 @@ upfront about how accurate those forecasts are.
 
 ```mermaid
 flowchart LR
-    subgraph sources[Sources]
-        OAQ[OpenAQ<br/>station PM2.5]
-        OM[Open-Meteo<br/>weather + CAMS]
-        FIRMS[NASA FIRMS<br/>fires]
-    end
+    SRC["Sources<br/>OpenAQ · Open-Meteo · NASA FIRMS"]
+    BRONZE[("bronze<br/>raw JSON")]
+    GOLD[("silver / gold<br/>Iceberg tables")]
+    MODELS[("LightGBM<br/>models")]
+    PUBLIC[("public/<br/>Parquet snapshot")]
+    DASH["Dashboard<br/>Streamlit Cloud"]
+    API["API<br/>Lambda + FastAPI"]
 
-    subgraph ec2["EC2 t4g.small · Airflow 3"]
-        ING[ingest<br/>hourly / daily]
-        DBT[dbt build<br/>hourly / daily]
-        PRED[predict<br/>hourly]
-        EXP[export public<br/>snapshot]
-    end
-
-    subgraph s3["S3 + Glue + Athena (Mumbai)"]
-        BRONZE[(bronze<br/>raw JSON)]
-        GOLD[(silver / gold<br/>Iceberg)]
-        PUBLIC[(public/<br/>Parquet)]
-        MODELS[(models +<br/>MLflow)]
-    end
-
-    GHA[GitHub Actions<br/>weekly training, CI]
-    DASH[Streamlit Cloud<br/>dashboard]
-    API[Lambda<br/>FastAPI]
-    TG[Telegram<br/>owner alerts]
-
-    OAQ & OM & FIRMS --> ING --> BRONZE --> DBT --> GOLD
-    GOLD --> PRED --> BRONZE
-    GOLD --> EXP --> PUBLIC
-    GOLD --> GHA --> MODELS --> PRED
+    SRC -->|"ingest, hourly / daily<br/>(Airflow on EC2)"| BRONZE
+    BRONZE -->|"dbt on Athena"| GOLD
+    GOLD -->|"train weekly<br/>(GitHub Actions)"| MODELS
+    MODELS -->|"predict hourly"| BRONZE
+    GOLD -->|"export hourly"| PUBLIC
     PUBLIC --> DASH
     PUBLIC --> API
-    ec2 -.-> TG
 ```
 
 | Cadence | What runs |
