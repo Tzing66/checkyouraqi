@@ -9,7 +9,13 @@ from datetime import UTC, datetime, timedelta
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import dag, task
 
-DEFAULT_ARGS = {"retries": 1, "retry_delay": timedelta(minutes=5)}
+from alerts.jobs import task_failed
+
+DEFAULT_ARGS = {
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+    "on_failure_callback": task_failed,
+}
 
 DBT = (
     "cd /opt/airflow/project/dbt && "

@@ -18,3 +18,5 @@ class Settings(BaseSettings):
     data_bucket: str = ""
     aws_profile: str | None = None
     aws_region: str = "ap-south-1"
+    telegram_bot_token: str = ""
+    telegram_alert_chat_id: str = ""

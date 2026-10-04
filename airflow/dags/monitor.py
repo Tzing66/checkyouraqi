@@ -5,7 +5,13 @@ from datetime import UTC, datetime, timedelta
 
 from airflow.sdk import dag, get_current_context, task
 
-DEFAULT_ARGS = {"retries": 1, "retry_delay": timedelta(minutes=10)}
+from alerts.jobs import task_failed
+
+DEFAULT_ARGS = {
+    "retries": 1,
+    "retry_delay": timedelta(minutes=10),
+    "on_failure_callback": task_failed,
+}
 
 
 def run_time():

@@ -9,7 +9,13 @@ from datetime import UTC, datetime, timedelta
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import dag, task
 
-DEFAULT_ARGS = {"retries": 1, "retry_delay": timedelta(minutes=5)}
+from alerts.jobs import task_failed
+
+DEFAULT_ARGS = {
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+    "on_failure_callback": task_failed,
+}
 
 # dbt lives in its own venv; the repo's dbt/ is mounted read-only, so build output, logs and
 # packages go to /tmp inside the container.
@@ -45,6 +51,8 @@ def dbt_build():
         bash_command=f"{DBT} source freshness --profiles-dir . --no-use-colors",
         execution_timeout=timedelta(minutes=10),
         retries=0,
+        # Fails by design whenever a source is stale; feed_alert below reports that instead.
+        on_failure_callback=None,
     )
 
     @task(execution_timeout=timedelta(minutes=15))
@@ -53,7 +61,14 @@ def dbt_build():
 
         return jobs.export_public()
 
-    build >> [freshness, export_public()]
+    @task(execution_timeout=timedelta(minutes=5))
+    def feed_alert() -> dict:
+        # Telegram notice when the data source's status changes (ok / degraded / outage).
+        from alerts import jobs
+
+        return jobs.feed_status_hourly()
+
+    build >> [freshness, export_public() >> feed_alert()]
 
 
 dbt_build()

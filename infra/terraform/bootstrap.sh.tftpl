@@ -32,6 +32,8 @@ umask 077
 cat > .env <<ENV
 OPENAQ_API_KEY=$(get openaq_api_key)
 FIRMS_MAP_KEY=$(get firms_map_key)
+TELEGRAM_BOT_TOKEN=$(get telegram_bot_token)
+TELEGRAM_ALERT_CHAT_ID=$(get telegram_alert_chat_id)
 DATA_BUCKET=${bucket}
 AWS_REGION=${region}
 AWS_DEFAULT_REGION=${region}

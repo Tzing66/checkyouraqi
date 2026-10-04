@@ -22,6 +22,8 @@ from the first unchecked item in §12. Tick items off in the plan as they are do
 - **AWS profiles (account 242254325008 only):** `checkyouraqi` = admin, Terraform only;
   `checkyouraqi-dev` = least-privilege pipeline user (set in `.env`). There is no default profile.
   On EC2 the instance role is used; on GitHub Actions an OIDC role (main branch only).
+- **Alerts:** Telegram to the owner's private chat (`alerts/`): any task's final failure (same task muted
+  6h) and OpenAQ feed status changes (`feed_alert` in dbt_build). Keys in SSM; state in `ops/alerts/`.
 - **CI:** `.github/workflows/ci.yml` runs ruff, pytest, `dbt parse` and `terraform validate` on every push/PR,
   with no AWS access. Keep it green before deploying.
 - **Terraform:** `infra/terraform` (state in S3, `backend.hcl` git-ignored). Always

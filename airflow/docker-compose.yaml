@@ -35,6 +35,8 @@ x-airflow-common: &airflow-common
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ../ingestion:/opt/airflow/project/ingestion:ro
+    - ../alerts:/opt/airflow/project/alerts:ro
+    - ../dashboard:/opt/airflow/project/dashboard:ro
     - ../config:/opt/airflow/project/config:ro
     - ../lakehouse:/opt/airflow/project/lakehouse:ro
     - ../ml:/opt/airflow/project/ml:ro
