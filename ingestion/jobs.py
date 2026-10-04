@@ -9,8 +9,6 @@ from __future__ import annotations
 import logging
 from datetime import UTC, date, datetime, timedelta
 
-from ingestion.cpcb.client import CpcbClient
-from ingestion.cpcb.extract import capture_snapshot
 from ingestion.firms.client import FirmsClient
 from ingestion.firms.extract import extract_fires
 from ingestion.openaq.client import OpenAQClient
@@ -52,20 +50,6 @@ def openaq_hourly(logical_time: datetime) -> dict[str, int]:
             client, _writer(s), load_stations(), logical_hour=_hour(logical_time)
         )
     log.info("openaq hourly %s: %s", _hour(logical_time), result)
-    return result
-
-
-def cpcb_snapshot_hourly(logical_time: datetime) -> dict:
-    """Backup source: CPCB's live feed keeps no history, so capture it every hour."""
-    s = Settings()
-    with CpcbClient() as client:
-        result = capture_snapshot(client, _writer(s), logical_hour=_hour(logical_time))
-    log.info(
-        "cpcb snapshot %s: %d stations, updated %s",
-        _hour(logical_time),
-        result["stations"],
-        result["last_updates"],
-    )
     return result
 
 

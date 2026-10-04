@@ -33,7 +33,7 @@ from the first unchecked item in §12. Tick items off in the plan as they are do
   `scripts/dbt.sh run-operation create_bronze_tables`. Incremental history readers only read
   recent bronze files, so use `--full-refresh` on them after a manual backfill of older periods.
   Iceberg upkeep: `run-operation iceberg_maintenance` (daily in `dbt_daily`).
-- **Airflow DAGs:** ingest_openaq (+ CPCB snapshot), ingest_weather (hourly); ingest_weather_actuals,
+- **Airflow DAGs:** ingest_openaq, ingest_weather (hourly); ingest_weather_actuals,
   ingest_fires, dbt_daily, monitor (daily); dbt_build (:25) and predict (:45) hourly.
 - **ML:** `python -m ml.train` (deterministic, writes `docs/model_results.md`); `python -m ml.promote`
   (fair champion/challenger on data after production's cutoff); `python -m ml.registry show`.

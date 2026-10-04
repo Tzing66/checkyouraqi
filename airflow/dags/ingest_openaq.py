@@ -1,5 +1,4 @@
-"""Hourly: OpenAQ trailing-6h PM2.5 + latest readings for every station, and a raw snapshot
-of CPCB's live feed (backup source, no history upstream) -> bronze."""
+"""Hourly: OpenAQ trailing-6h PM2.5 + latest readings for every station -> bronze."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -31,15 +30,7 @@ def ingest_openaq():
 
         return jobs.openaq_hourly(run_time())
 
-    @task(execution_timeout=timedelta(minutes=5), retries=3)
-    def capture_cpcb() -> dict:
-        # Independent of extract(): the backup source must not block, or be blocked by, OpenAQ.
-        from ingestion import jobs
-
-        return jobs.cpcb_snapshot_hourly(run_time())
-
     extract()
-    capture_cpcb()
 
 
 ingest_openaq()
