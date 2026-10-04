@@ -30,7 +30,7 @@ upfront about how accurate those forecasts are.
 - **Models** them in a bronze → silver → gold lakehouse: 27 dbt models on Athena and Iceberg, with
   44 data tests.
 - **Forecasts** every station every hour with one LightGBM model per horizon (24, 48 and 72h).
-- **Serves** a Streamlit dashboard (map, station pages, model health) and a FastAPI read API.
+- **Serves** a Streamlit dashboard (map, station pages, forecast accuracy) and a FastAPI read API.
 - **Retrains weekly** on GitHub Actions. A new model is promoted only if it beats production on
   data that production has never seen.
 - **Alerts** the owner on Telegram when a pipeline task fails, or when the data source goes down or
@@ -87,9 +87,9 @@ mean absolute error (MAE) in µg/m³; lower is better.
   upwind in the north-west arc over the past 24–72 hours.
 
 Full tables: [docs/model_results.md](docs/model_results.md). Live accuracy is on the dashboard's
-*Model health* page.
+*Forecast accuracy* page.
 
-![Model health page](docs/images/model_health.png)
+![Forecast accuracy page](docs/images/model_health.png)
 
 ## Design decisions
 
