@@ -120,3 +120,28 @@ def test_target_transform_round_trips_and_extrapolates():
     )
     with pytest.raises(ValueError):
         encode_target(y, base, "nope")
+
+
+def test_results_report_handles_horizons_with_different_months(tmp_path, monkeypatch):
+    """Weekly run 2026-10-10 crashed: the 72h horizon had one test month fewer than 24h."""
+    import pandas as pd
+
+    from ml import train
+
+    def result(h, folds):
+        metrics = {"mae": 30.0, "rmse": 50.0, "bias": -1.0, "category_accuracy": 0.5}
+        return {
+            "horizon": h,
+            "model": metrics,
+            "baselines": {"persistence": metrics},
+            "skill": {"persistence": 0.1},
+            "per_fold": [{"fold": f, "mae": 20.0, "persistence_mae": 22.0} for f in folds],
+            "importance": pd.Series({"pm25_last_valid": 3.0, "location_id": 1.0}),
+        }
+
+    out = tmp_path / "model_results.md"
+    monkeypatch.setattr(train, "RESULTS_MD", out)
+    results = [result(24, ["2026-08", "2026-09"]), result(72, ["2026-08"])]
+    train.write_markdown(results, "src", 100, 1.0, "absolute")
+    text = out.read_text()
+    assert "| 2026-09 | 20.0 / 22.0 | — |" in text

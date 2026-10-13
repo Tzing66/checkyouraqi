@@ -169,11 +169,13 @@ def write_markdown(
         "| Month | " + " | ".join(f"{r['horizon']}h model / persistence" for r in results) + " |",
         "|---|" + "---|" * len(results),
     ]
-    months = [f["fold"] for f in results[0]["per_fold"]]
-    for i, month in enumerate(months):
+    # Horizons can have different test months (a long horizon's last month may have no
+    # targets yet), so align rows by month, not by position.
+    by_month = [{f["fold"]: f for f in r["per_fold"]} for r in results]
+    for month in sorted(set().union(*by_month)):
         cells = [
-            f"{r['per_fold'][i]['mae']:.1f} / {r['per_fold'][i]['persistence_mae']:.1f}"
-            for r in results
+            f"{m[month]['mae']:.1f} / {m[month]['persistence_mae']:.1f}" if month in m else "—"
+            for m in by_month
         ]
         lines.append(f"| {month} | " + " | ".join(cells) + " |")
     lines += ["", "## Top features (24h model, gain)", ""]
