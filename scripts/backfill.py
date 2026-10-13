@@ -64,7 +64,9 @@ def is_recent(last_day: date, end: date) -> bool:
     return (end - last_day).days < REFRESH_DAYS
 
 
-def backfill_openaq(writer: Writer, s: Settings, start: date, end: date) -> None:
+def backfill_openaq(
+    writer: Writer, s: Settings, start: date, end: date, force: bool = False
+) -> None:
     stations = yaml.safe_load((CONFIG_DIR / "stations.yaml").read_text())["stations"]
     todo = []
     for st in stations:
@@ -73,7 +75,7 @@ def backfill_openaq(writer: Writer, s: Settings, start: date, end: date) -> None
             if m_end < first:
                 continue
             key = history_key(m_start, st["location_id"])
-            if not is_recent(m_end, end) and writer.exists(key):
+            if not force and not is_recent(m_end, end) and writer.exists(key):
                 continue
             todo.append((StationRef(st["location_id"], st["pm25_sensor_id"]), m_start))
     log.info("openaq: %d station-months to fetch (~%.0f min)", len(todo), len(todo) * 1.2 / 60)
@@ -155,7 +157,7 @@ def main() -> None:
     parser.add_argument("--end", type=date.fromisoformat, default=yesterday)
     parser.add_argument("--local", action="store_true", help="write to data/ instead of S3")
     parser.add_argument("--only", help="weather only: actuals | previous_runs | air_quality")
-    parser.add_argument("--force", action="store_true", help="weather only: re-fetch existing")
+    parser.add_argument("--force", action="store_true", help="openaq, weather: re-fetch existing")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -168,6 +170,8 @@ def main() -> None:
     started = time.monotonic()
     if args.source == "weather":
         backfill_weather(writer, s, args.start, args.end, only=args.only, force=args.force)
+    elif args.source == "openaq":
+        backfill_openaq(writer, s, args.start, args.end, force=args.force)
     else:
         SOURCES[args.source](writer, s, args.start, args.end)
     log.info("%s backfill finished in %.1f min", args.source, (time.monotonic() - started) / 60)

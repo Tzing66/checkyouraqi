@@ -7,6 +7,7 @@ import pytest
 
 from ingestion.http import ApiAuthError, ApiServerError, Fetched
 from ingestion.openaq.extract import (
+    LOOKBACK,
     AllStationsFailedError,
     StationRef,
     extract_history_month,
@@ -49,11 +50,11 @@ def test_hourly_uses_trailing_window_and_writes_both_files(tmp_path):
         client, LocalWriter(tmp_path), STATIONS, logical_hour=HOUR.replace(minute=5), now=now
     )
     assert result == {"stations": 2, "pm25_errors": 0, "latest_errors": 0}
-    assert client.hours_calls[0] == (12235610, datetime(2026, 9, 28, 8, tzinfo=UTC), HOUR)
+    assert client.hours_calls[0] == (12235610, HOUR - LOOKBACK, HOUR)
 
     base = tmp_path / "bronze/openaq"
     pm = read(base / "measurements/dt=2026-09-28/hour=14/pm25_hours.json.gz")
-    assert pm["window_start"] == "2026-09-28T08:00:00Z"
+    assert pm["window_start"] == "2026-09-26T14:00:00Z"  # HOUR - 48h
     assert pm["fetched_at"] == "2026-09-28T14:07:00Z"
     assert pm["stations"]["235"] == [{"sensor": 12235610}]
     latest = read(base / "latest/dt=2026-09-28/hour=14/latest.json.gz")

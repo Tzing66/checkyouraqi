@@ -34,7 +34,9 @@ from ingestion.writers import Writer
 
 log = logging.getLogger(__name__)
 
-LOOKBACK = timedelta(hours=6)
+# Since its Oct 2026 outage OpenAQ delivers Delhi readings in a ~daily batch, ~23h late; a
+# 48h window still catches them (same request count, slightly bigger files).
+LOOKBACK = timedelta(hours=48)
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,4 @@
-"""Hourly: OpenAQ trailing-6h PM2.5 + latest readings for every station -> bronze."""
+"""Hourly: OpenAQ trailing-48h PM2.5 + latest readings for every station -> bronze."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -22,7 +22,7 @@ def run_time():
 @dag(
     schedule="5 * * * *",
     start_date=datetime(2026, 9, 28, tzinfo=UTC),
-    # The 6h lookback window re-covers short gaps; long gaps go through scripts/backfill.py.
+    # The 48h lookback re-covers late batches and short gaps; longer ones: scripts/backfill.py.
     catchup=False,
     max_active_runs=1,
     dagrun_timeout=timedelta(minutes=50),
